@@ -1,0 +1,445 @@
+---
+title: "Day Three: Principles of Time Series Forecasting"
+author: "Lumumba Wandera Victor"
+format: html
+editor: visual
+---
+
+## Day Three: Principles of Time Series Forecasting
+
+### FIRST SESSION 10:00 AM TO 11:30 AM
+
+#### BASIC MODELING AND FORECASTING
+
+#### FORECASTING WITH REGRESSION: HOW TO REPRESENT TEMPORAL STRUCTURE WITH REGRESSORS
+
+#### Load the following required library
+
+```{r}
+library(fpp3)
+```
+
+#### Basic Introduction
+
+In this session we will develop a regression model that can capture both trend and seasonal components. In other words, we shall represent temporal structure such as trends and seasonal components. In a simple linear regression model (SLR) we model the effect of a predictor on a response variable. On the other hand, multiple regression model estimates the effect of two or more predictors on a response variable. The predictors in this case can be trends or seasonal structures. Regression model allow for linear relationship between the forecast variable and single or more variables. Below are general formula for simple and multiple regression model.
+
+The best model is the one the minimizes the residuals.
+
+### Check the Plot Below for Consumption Data set
+
+```{r}
+us_change |> 
+  autoplot(Consumption)
+```
+
+From the plot above , there is no much trend or seasonality. No much structure. May be there is some information that help to model and estimate the effect from other variables. Let us look at income plot.
+
+#### Income Plot
+
+```{r}
+us_change |> 
+  autoplot(Income)
+```
+
+#### Plot Income and Consumption on one Plot
+
+```{r}
+us_change |> 
+  autoplot(Consumption) + 
+  geom_line(aes(y = Income), colour = "steelblue")
+```
+
+There is some similarity between the plots for income and consumption. From the plots, when income increases, consumption increases as well. We can therefore model the effect of income on cconsumption
+
+```{r}
+us_change |> 
+  ggplot(aes(y = Consumption, x = Income)) + 
+  geom_point() + 
+  geom_smooth(method = "lm")+
+  labs(y ="Consumption (Quarterly % Change)", x = "Income (Quarterly % Change)", title = "The Scatter Plot of Income and Consumption")
+```
+
+From the plot above, we can easily see that there is a linear trend between the income and consumption. We can therefore estimate the linear effect of consumption on consumption. Remember, when we doing the times decomposition, we were using STL decomposition, similarly regression has a formula to use, and that Time Series Linear Model (TSLM).
+
+#### Estimate the First Model. Effect of Income on Consumption
+
+```{r}
+fit <- us_change |> 
+  model(
+    TSLM(Consumption ~ Income))
+fit
+```
+
+#### Extract various information from the Model (Coefficients and other important information)
+
+#### Extract the Coefficients
+
+```{r}
+fit|>
+  tidy()
+```
+
+#### Model Summary
+
+```{r}
+fit|>
+  glance()
+```
+
+The AIC, corrected AIC and BIC are used to compare two or more models to pick the best model.
+
+#### Extract Fits
+
+```{r}
+fit|>
+  augment()
+```
+
+### Extract the Entire Model Information
+
+```{r}
+fit|>
+  report()
+```
+
+## Interpretation for Linear Model will be done later one
+
+#### Create two Models and Compare them
+
+```{r}
+fit <- us_change |> 
+  model(
+    TSLM(Consumption ~ 1), 
+    TSLM(Consumption ~ Income))
+fit 
+```
+
+Now we have two different regression models and we can extract the coefficients for the two models
+
+```{r}
+fit|>
+  tidy()
+```
+
+We can now compare the two model using glance() function
+
+```{r}
+fit|>
+  glance()
+```
+
+Cross Validation (CV) statistics shows that the second model is the best model. The second model which include Income is the best model. So we d not need this model that do not have intercept.
+
+### Extract Fits
+
+```{r}
+fit|>
+  augment()
+```
+
+From the model above, we have residual and innovations residuals. There is a slight between residuals and innovations residuals. When testing the model we look at the innovations residuals for model diagnostic and if we want to see how well the model performs we use the normal residuals. Besides, we have actual consumptions values and fitted values. Let us plot the actual consumption values and fitted values.
+
+### Estimate the First Model with Income to Plot Actual and Fitted Consumption values
+
+```{r}
+fit <- us_change |> 
+  model(
+    #TSLM(Consumption ~ 1), 
+    TSLM(Consumption ~ Income))
+fit 
+  
+```
+
+```{r}
+fit|>
+  augment()|>
+  autoplot(Consumption)+
+  geom_line(aes(y = .fitted), colour = "steelblue")
+```
+
+The black line shows actual consumption values and those in blue are fitted consumption values. We can now report to look at the model parameter
+
+```{r}
+fit|>
+  report()
+```
+
+### Test the Normal Distribution of the Residuals
+
+```{r}
+augment(fit) %>% 
+  gg_tsdisplay(.resid, plot_type = "hist")
+```
+
+### Multiple Linear Regression Model
+
+We can add as many variables as we would want but we should be aware of muticollinearity problem and over-fitting the model. What also make linear a bit more special is the linear trend and seasonality. We can incorporate a linear trend into our model as well as our seasonality. We can demonstrate that using us_employment data as shown in codes below. Lets get down to it.
+
+```{r}
+fit <- us_change |> 
+  model(
+    #TSLM(Consumption ~ 1), 
+    model1=TSLM(Consumption ~ Income),
+    model2=TSLM(Consumption ~ Income + Production + Savings + Unemployment),
+   model3= TSLM(Consumption ~ Income + Savings)
+    )
+```
+
+```{r}
+tidy(fit)
+```
+
+```{r}
+glance(fit)
+```
+
+The use of adjusted r-square in multiple linear model is put into consideration how many predictors were used in the model. Besides, using adjusted r-square help to avoid over fitting.
+
+### Coefficients
+
+```{r}
+fit |> 
+  tidy()
+```
+
+### Summary
+
+```{r}
+fit |> 
+  glance()
+```
+
+### Fits
+
+```{r}
+fit |>
+  augment()
+```
+
+```{r}
+fit |> 
+  augment() |> 
+  autoplot(Consumption) + 
+  geom_line(aes(y = .fitted), colour = "steelblue")
+```
+
+### Report
+
+Reporting does not work for multiple models, so instead use glance() function
+
+### Some Assumptions of Regression Models
+
+1.  The residuals are normally distributed with a mean of zero and a constant variance
+2.  The residuals are uncorrelated with each other
+3.  The predictors are uncorrelated with each other
+4.  The variance of the residuals is constant over time
+5.  The residuals are uncorrelated with any of the predictor.
+
+## US Employment Data
+
+```{r}
+us_retail <- us_employment |> 
+  filter(Month >= yearmonth("1990 Jan"), Title == "Retail Trade")
+
+us_retail |> 
+  autoplot(Employed)
+```
+
+### Estimate a Linear Model with Trend and Seasonal Component
+
+```{r}
+fit <- us_retail |> 
+  model(
+    #TSLM(Employed ~ 1),
+    #TSLM(Employed ~ 1 + trend()),
+    #TSLM(Employed ~ 1 + season()),
+    linear = TSLM(Employed ~ 1 + trend() + season()),
+    piecewise = TSLM(Employed ~ 1 + trend(knots = yearmonth(c("2000 Jan", "2010 Jan"))) + season())
+    )
+```
+
+```{r}
+tidy(fit)
+```
+
+```{r}
+us_retail |> 
+  autoplot(Employed) + 
+  geom_line(aes(y = .fitted, colour = .model), data = augment(fit))
+```
+
+The red line is the mode that shows the linear trend and seasonal trend. The blue line is the model with piecewise trend, and its looking much better. It is easier to note that we have three trends for the model with the blue line. But you have a model that changes the trend a the blue line, it is good to use ETS or arima model.
+
+### Plot without the data
+
+```{r}
+fit |> 
+  forecast(h = "1 year") |> 
+  autoplot()
+```
+
+### Plot with the data
+
+```{r}
+fit |> 
+  forecast(h = "1 year") |> 
+  autoplot(us_retail)
+```
+
+### Load the following library for plotting the Forecast Distribution
+
+```{r}
+library(ggdist)
+```
+
+```{r}
+fit |> 
+  forecast(h = "1 year") |> 
+  filter(.model == "linear") |> 
+  ggplot(aes(ydist = Employed, x = Month)) + 
+  stat_dist_halfeye() + 
+  autolayer(tail(us_retail, 20), Employed)
+```
+
+### US Change data
+
+```{r}
+us_change
+```
+
+## Fit the Linear Model
+
+```{r}
+fit <- us_change |> 
+  model(
+    TSLM(Consumption ~ Income + Savings)
+    )
+fit|>
+  report()
+```
+
+## Create the data for the forecast
+
+```{r}
+future_us_change <- new_data(us_change, 1) |> 
+  mutate(Income = mean(us_change$Income) + 
+           1, Savings = mean(us_change$Savings) + 0.3)
+```
+
+### View the future change data
+
+```{r}
+future_us_change
+```
+
+### Forecast
+
+```{r}
+fit |> 
+  forecast(new_data = future_us_change)
+```
+
+### Plot the Forecast
+
+```{r}
+fit |> 
+  forecast(new_data = future_us_change) |> 
+  autoplot()
+```
+
+### Plot the Forecast with the Data
+
+```{r}
+fit |> 
+  forecast(new_data = future_us_change) |> 
+  autoplot(us_change)
+```
+
+```{r}
+fit <- us_change |> 
+  model(
+    TSLM(Consumption ~ lag(Income, 1) + lag(Savings, 1))
+    )
+```
+
+```{r}
+tidy(fit)
+```
+
+```{r}
+future_us_change <- new_data(us_change, 1) |> 
+  mutate(Income = 1, Savings = 1)
+```
+
+```{r}
+fit |> 
+  forecast(future_us_change)
+```
+
+```{r}
+ansett |> 
+  summarise(Passengers = sum(Passengers)) |> 
+  filter_index("1989 W26" ~ "1990 W1") |> 
+  autoplot(Passengers) + 
+  scale_x_yearweek(date_breaks = "3 week")
+```
+
+```{r}
+fit <- ansett |> 
+  summarise(Passengers = sum(Passengers)) |> 
+  mutate(strike = Passengers == 0)#|>  
+  #time_in(Week, "1989 W34" ~ "1989 W40")
+
+```
+
+```{r}
+ model(
+   TSLM(Passengers ~ trend(yearweek("1990 W1"))*strike + lag(strike))
+   )
+```
+
+```{r}
+augment(fit) |> 
+  autoplot(Passengers) + 
+  geom_line(aes(y = .fitted), colour = "steelblue")
+```
+
+```{r}
+vic_elec |> 
+  print(n = 100)
+```
+
+```{r}
+insurance |> 
+  autoplot(Quotes) +
+  geom_line(aes(y = TVadverts), colour = "steelblue")
+```
+
+```{r}
+insurance |> 
+  ggplot(aes(y = Quotes, x = lag(TVadverts, 1))) + 
+  geom_point() + 
+  geom_smooth(method = "lm")
+```
+
+```{r}
+fit <- insurance |> 
+  model(
+    TSLM(Quotes ~ TVadverts),
+    TSLM(Quotes ~ TVadverts + lag(TVadverts, 1))
+    )
+
+
+```
+
+```{r}
+fit <- insurance |> 
+  model(
+    TSLM(Quotes ~ TVadverts + lag(TVadverts, 1) + lag(TVadverts, 2))
+
+  )
+```
+
+```{r}
+glance(fit)
+```

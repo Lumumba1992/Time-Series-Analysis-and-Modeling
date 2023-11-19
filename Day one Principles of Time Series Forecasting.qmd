@@ -1,0 +1,1021 @@
+---
+title: "Day one: Principles of Time Series Forecasting"
+author: "Lumumba Wandera Victor"
+format: html
+editor: visual
+---
+
+Time series forecasting is a critical branch of data analysis that is primarily concerned with predicting future data points based on patterns and trends observed in historical time-ordered data. This method of analysis is widely utilized in various fields, from finance and economics to meteorology and healthcare, to make informed decisions and plan for the future.
+
+At its core, time series forecasting relies on the assumption that the past behavior of a time series holds valuable information about its future behavior. A time series is essentially a sequence of data points collected at regular intervals, such as daily stock prices, monthly sales figures, or hourly temperature measurements. The primary goal is to develop models and algorithms that can capture and extrapolate patterns in this data, allowing us to make informed predictions.
+
+There are numerous techniques and methods available for time series forecasting, each tailored to different types of data and requirements. Some of the most common approaches include autoregressive integrated moving average (ARIMA), exponential smoothing, and machine learning algorithms like Long Short-Term Memory (LSTM) networks. These methods differ in their complexity, assumptions, and performance, but they all share the same fundamental goal of generating accurate forecasts.
+
+One of the key challenges in time series forecasting is dealing with seasonality, trends, and irregularities within the data. Seasonality refers to regular patterns that occur at fixed intervals, like daily sales spikes during weekends. Trends represent long-term directional movements in the data, such as increasing monthly website traffic over several years. Irregularities are often random fluctuations that can make prediction difficult.
+
+The success of time series forecasting depends on data quality, feature engineering, and model selection. Analysts must preprocess the data, identify and extract relevant features, and choose an appropriate forecasting model. Additionally, they need to evaluate the model's performance using metrics like Mean Absolute Error (MAE) or Root Mean Squared Error (RMSE).
+
+In conclusion, time series forecasting is a crucial tool for making informed decisions in various fields. It leverages historical data to anticipate future trends and patterns, enabling organizations and individuals to plan, allocate resources, and manage risk effectively. As technology and data science continue to advance, the accuracy and applicability of time series forecasting methods will only improve, making it an increasingly indispensable tool for shaping the future.
+
+### Basics of Time Series and Data Structure
+
+```{r}
+library(fpp3)
+library(tibble)
+library(tsibble)
+library(tidyverse)
+library(tsibbledata)
+library(fable)
+# install.packages("fpp3")
+```
+
+## Load the Global Economic Data
+
+```{r}
+global_economy
+as_tibble(global_economy)
+```
+
+The data above has 263 times series grouped by countries. In other words, we have 263 countries. In times series tsibble object such as the one above, country is the key variables and year as the index variable. We can also have a tsibble object with more than one key variable as it in the case of tourism data shown below.
+
+### Filter the Data (Filter Countries)
+
+```{r}
+global_economy |> 
+  filter(Country == "Kenya")
+```
+
+## Tourism Data Set (Filter by Purpose)
+
+## Australian domestic overnight trips
+
+### Description
+
+A dataset containing the quarterly overnight trips from 1998 Q1 to 2016 Q4 across Australia.
+
+### Usage
+
+```         
+tourism 
+```
+
+### Format
+
+A tsibble with 24,320 rows and 5 variables:
+
+-   **Quarter**: Year quarter (index)
+
+-   **Region**: The tourism regions are formed through the aggregation of Statistical Local Areas (SLAs) which are defined by the various State and Territory tourism authorities according to their research and marketing needs
+
+-   **State**: States and territories of Australia
+
+-   **Purpose**: Stopover purpose of visit:
+
+    -   "Holiday"
+
+    -   "Visiting friends and relatives"
+
+    -   "Business"
+
+    -   "Other reason"
+
+-   **Trips**: Overnight trips in thousands
+
+### References
+
+[Tourism Research Australia](https://www.tra.gov.au/)
+
+### View the Data
+
+```{r}
+tourism
+```
+
+### Filter Purpose of Travel (Purpose = Holiday)
+
+```{r}
+tourism |> 
+  filter(Purpose == "Holiday")
+```
+
+Frequency of time series data varies. Some have annual frequency, quarterly frequency and even monthly frequency. The data above on tourism has quarterly frequency. In times series data, time is unique. key are variables that uniquely identify the time series. Measured variables are numeric variable which we might want to predict.
+
+## Note
+
+A tsibble allows storage and manipulation of multiple time series in R.
+
+It contains:
+
+▶ An index: time information about the observation
+
+▶ Measured variable(s): numbers of interest
+
+▶ Key variable(s): optional unique identifiers for each series
+
+It works with tidyverse functions.
+
+## Load the Prison Data set
+
+```{r}
+###prison <- readr::read_csv("https://OTexts.com/fpp3/extrafiles/prison_population.csv")
+prison <- read_csv("prison.csv")
+prison
+prison |> 
+  mutate(Quarter = yearquarter(Date)) |> 
+  as_tsibble(index = Quarter, key = c(State, Gender, Legal, Indigenous))
+```
+
+## Load Another data set
+
+### Pharmaceutical Benefit Scheme PB
+
+```{r}
+PBS
+```
+
+#### Check more info about the data set PBS
+
+## Monthly Medicare Australia prescription data
+
+### Description
+
+`PBS` is a monthly `tsibble` with two values:
+
+|          |                              |
+|:---------|:-----------------------------|
+| Scripts: | Total number of scripts      |
+| Cost:    | Cost of the scripts in \$AUD |
+|          |                              |
+
+### Format
+
+Time series of class `tsibble`
+
+### Details
+
+The data is disaggregated using four keys:
+
+|             |                                                                                                                                                                                                        |
+|:------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Concession: | Concessional scripts are given to pensioners, unemployed, dependents, and other card holders                                                                                                           |
+| Type:       | Co-payments are made until an individual's script expenditure hits a threshold (\$290.00 for concession, \$1141.80 otherwise). Safety net subsidies are provided to individuals exceeding this amount. |
+| ATC1:       | Anatomical Therapeutic Chemical index (level 1)                                                                                                                                                        |
+| ATC2:       | Anatomical Therapeutic Chemical index (level 2)                                                                                                                                                        |
+|             |                                                                                                                                                                                                        |
+
+### Source: Medicare Australia
+
+#### Other Example to Obtain Mean
+
+```{r}
+1:10 %>% mean 
+
+1:10 |> mean()
+```
+
+You must have noted something from the code above. That is, with magritr pipe function we do not need brackets around the function mean, however, with native pipe, we need brackets around the function mean
+
+### Let us Proceed with PBS Data and Get some Interesting Summaries
+
+```{r}
+PBS
+```
+
+Suppose we want to calculate the total cost to the government incurred to subsidize drugs every month, we might have to calculate the monthly total cost for every year. The results below shows how much it is costing the government to subsidize drugs every month. For instance, it cost the government approximately \$ 429030845 in June 2008 to subsidize drugs to ensure that hospital have enough drugs.
+
+```{r}
+PBS |> 
+  summarise(Cost = sum(Cost)) |> 
+  slice_max(Month, n = 10)
+```
+
+### Lets uf Group the Total Cost by Concession
+
+In the context of healthcare and medical services, "concessional" and "general" typically refer to different patient categories or eligibility criteria for accessing medical care, services, or medications. These terms are often used in healthcare systems that have public or government-funded components, such as Medicare in the United States or the National Health Service (NHS) in the United Kingdom. The specific meanings may vary from one healthcare system to another, but here are some general explanations:
+
+1.  **Concessional:**
+
+    -   Concessional patients are individuals who are eligible for certain benefits, discounts, or subsidies when it comes to healthcare services or medications.
+
+    -   They may include individuals who meet specific criteria, such as low-income individuals, senior citizens, veterans, or individuals with certain medical conditions.
+
+    -   Concessional patients often receive financial assistance or reduced fees for medical consultations, prescription medications, and other healthcare services.
+
+2.  **General:**
+
+    -   General patients, on the other hand, are typically individuals who do not meet the specific criteria for concessional status.
+
+    -   They are not eligible for the same level of financial assistance or discounts in healthcare services.
+
+    -   General patients may be responsible for the full cost of medical consultations, tests, and prescription medications, either through out-of-pocket payments or private health insurance.
+
+The division between concessional and general patients is an important aspect of healthcare systems with universal access or public healthcare components. It helps ensure that individuals who may be economically disadvantaged or have special medical needs receive the necessary support, while others who can afford to pay for their healthcare contribute to the funding of the system.
+
+The specific criteria for concessional eligibility can vary widely from one country to another and even within different regions or states. It's important for individuals to understand their eligibility status and the benefits they are entitled to in their specific healthcare system to make informed decisions about their healthcare expenses.
+
+```{r}
+PBS |> 
+  group_by(Concession)|>
+  summarise(Cost = sum(Cost)) |> 
+  slice_max(Month, n = 20)
+```
+
+The provided table displays the total cost of government subsidies for medical services categorized into "Concessional" and "General" patients for three consecutive months in 2008. These subsidies represent the financial support provided by the government to different groups of patients.
+
+In June 2008, the government allocated a substantial subsidy of \$ 337,340,098 dollars for "Concessional" patients, while "General" patients received a lower subsidy of 91,690,747 units. The trend continued into May 2008, with "Concessional" patients receiving \$ 402,558,027 dollars and "General" patients receiving \$ 105,087,147 dollars in subsidies. April 2008 also exhibited a similar pattern, with "Concessional" patients benefiting from a subsidy of \$ 409,411,830 dollars, whereas "General" patients received \$ 109,142,033 dollars in government support.
+
+This data highlights the government's financial commitment to support healthcare accessibility, with "Concessional" patients, likely representing economically disadvantaged or special needs groups, receiving higher subsidies compared to "General" patients who may have fewer specific eligibility criteria for assistance.
+
+### Annual Summary
+
+There are many ways we can split and dissect time series data. This time we shall use a special function index_by
+
+```{r}
+PBS|>
+  index_by(Year = year(Month))|>
+  summarise(Cost = sum(Cost))|>
+  slice_max(Year, n = 10)
+```
+
+The above can be displayed as shown below
+
+| Year |       Cost |
+|-----:|-----------:|
+| 2008 | 2915404020 |
+| 2007 | 5672719415 |
+| 2006 | 5387926370 |
+| 2005 | 5283965076 |
+| 2004 | 5255955561 |
+| 2003 | 4746200613 |
+| 2002 | 4425270957 |
+| 2001 | 4039344625 |
+| 2000 | 3440333716 |
+| 1999 | 2992605667 |
+
+#### Make a Basic Time Series Plot of Cost
+
+```{r}
+PBS |> 
+  summarise(Cost = sum(Cost)) |> 
+  slice_max(Month, n = 50)|> ## the first 50 observations, max
+  autoplot()
+```
+
+### Group_by Function and Summarize Function
+
+```{r}
+PBS |> 
+  group_by(Concession) |> 
+  summarise(Cost = sum(Cost)) |> 
+  slice_max(Month, n = 50)
+```
+
+### Index_by Function, Slice_max and Summarize Function
+
+```{r}
+PBS |> 
+  index_by(Year = year(Month)) |> 
+  summarise(Cost = sum(Cost)) |> 
+  slice_max(Year, n = 10)
+```
+
+We can also filter for a specific type of drug as shown below
+
+```{r}
+PBS |> 
+  filter(ATC2 == "A10")|>
+  select(Month, Concession, Type, Cost)|>
+  summarise(total_cost = sum(Cost))
+```
+
+We can adjust the values to be in millions dollars as shown below
+
+```{r}
+PBS |> 
+  filter(ATC2 == "A10")|>
+  select(Month, Concession, Type, Cost)|>
+  summarise(total_cost = sum(Cost))|>
+  mutate(total_cost = total_cost/1e6)
+```
+
+## SECOND SESSION (11:45 AM)
+
+## Time Series Patterns and Basic Graphics
+
+### Time Series Patterns
+
+1.  *Level*
+
+2.  *Underlying trend*
+
+3.  *Seasonal/cycle*
+
+4.  *Autocorrelation*
+
+5.  *Unpredictable patterns/Noise*
+
+6.  *Different types of events and driving factors*
+
+7.  *(i.e. predictors) may affect the time series*
+
++----------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Time Series Patterns | Description                                                                                                                                                                                                  |
++======================+==============================================================================================================================================================================================================+
+| #### Level           | The level of a time series describes the center of the series.                                                                                                                                               |
++----------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| #### Trend           | A trend describes predictable increases or decreases in the level of a series.                                                                                                                               |
++----------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| #### Seasonality     | Seasonality is a consistent pattern that repeats over a fixed period of time. pattern exists when a series is influenced by seasonal factors (e.g., the quarter of the year, the month, or day of the week). |
++----------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| #### Cyclic          | pattern exists when data exhibit rises and falls that are not of fixed period (duration usually of at least 2 years).                                                                                        |
++----------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+## Load Ansett Data Set
+
+## Passenger numbers on Ansett airline flights
+
+### Description
+
+The data features a major pilots' industrial dispute which results in some weeks having zero passengers. There were also at least two changes in the definitions of passenger classes.
+
+### Format
+
+Time series of class `tsibble`
+
+### Details
+
+`ansett` is a weekly `tsibble` with one value:
+
+|             |                                             |
+|:------------|:--------------------------------------------|
+| Passengers: | Total air passengers travelling with Ansett |
+|             |                                             |
+
+Each series is uniquely identified using two keys:
+
+|           |                                                                       |
+|:----------|:----------------------------------------------------------------------|
+| Airports: | The airports that passengers are travelling between (both directions) |
+| Class:    | The class of the ticket.                                              |
+|           |                                                                       |
+
+```{r}
+ansett
+```
+
+### Create a Simple Plot for Passengers for a Specific Airport and Class = Economy
+
+```{r}
+ansett |>
+  filter(Airports == "ADL-PER", Class == "Economy") |> 
+  autoplot(Passengers)
+```
+
+The plot above shows the number of passengers over time. We have some interesting features in the plot. There were times when there were no passengers at all. This happened when there was a nation wide strike in Australia and all the pilots refused to fly the planes.
+
+### Make the Time Series Plot for Specific Airport and All Classes
+
+```{r}
+ansett |>
+  filter(Airports == "ADL-PER") |> 
+  autoplot(Passengers)
+```
+
+The plot above added colors to identify different classes of travel with economy as the most common of class of travel. First class is shown by the blue line, where we had very few passengers. The red line shows the passengers travelling in the business class. One of the interesting feature we can see in this plot is that there was an drop in economy class and a sharp increase in business school. When you see unusual behavior in the data as shown in 1992, it is good to the data provider and ask for more clarification about the unusual behavior in the data. What happened during that time is that airline companies restructured and re-classified the airline tickets to make business tickets more cheap and accessible and economy class more expensive and inaccessible.
+
+### Make the Time Series Plot of Passengers for All the Airports
+
+```{r}
+ansett |> 
+  group_by(Airports)
+```
+
+From the grouped by data, I have 10 time series, that is, I have ten airports. Now consider the plot below for various airports. The plot shows total number of passengers and airport pairs
+
+```{r fig.width=8}
+ansett |> 
+  group_by(Airports) |> 
+  summarise(Passengers = sum(Passengers)) |> 
+  autoplot(Passengers)
+```
+
+From the plot above, we are able to see that all the pairs of airports were equally affected by the country wide strike.
+
+### Load the Australian Production Data
+
+```{r}
+aus_production
+```
+
+## Seasonal Plots
+
+1.  Data plotted against the individual "seasons" in which the data were observed. (In this case a"season" can be a month, quarter, annual.)
+
+2.  Something like a time plot except that the data from each season are overlapped.
+
+3.  Enables the underlying seasonal pattern to be seen more clearly, and also allows any substantial departures from the seasonal pattern to be easily identified.
+
+4.  In R: gg_season()
+
+#### Make a Time Series Plot of Beer Production in Australia
+
+```{r}
+aus_production |> 
+  autoplot(Beer)
+```
+
+The beer production increase from around 1955 all the way to around 1975 and starts decreasing. We can observe an increasing and decreasing seasonal trend in the beer production. There is a consistent up and down trend. Instead of using autoplot function, we can use gg_season to visualize how beer production has been varying over time.
+
+### Use gg_season for Time Series Plot
+
+```{r}
+aus_production |> 
+  gg_season(Beer)
+```
+
+Instead of having years in the x-axis, now I have quartes in the x-axis. Quarters are now the seasons in our data set. From the plot above, beer production is very high in quarter 4 and very low in quarter 2 and 3. That means, beer demand is very high in Australia during festive season such as the one observed in December.
+
+### Time Series Plot of Cement Production
+
+```{r}
+aus_production |> 
+  autoplot(Cement)
+```
+
+From this plot, we can see an upwards and seasonality aspects. Remember we have additive seasonality and multiplicative seasonality. The plot above is an example of multiplicative seasonality. When the amount of cement produced is small, the amplitude is very small, however, when the cement produced is very large, the seasonal shapes are very large. Creating a time model from this data can be problematic because seasonality is not uniform, we the simply the patterns before modelling.
+
+### Time Series (gg_season) for Cement Production
+
+```{r}
+aus_production |> 
+  gg_season(Cement)
+```
+
+We have a very strong trend in the data, so all the seasonlity in the data are more spread out. It is also quite difficulty to see where the minimum and maximum value is. Quarter 3 seems to have maximum values, however, at some point, one would think that quarter 4 has the highest values. Now, what if we have highly frequent data like half-hourly electricity demand for Victoria Australia
+
+## Half-hourly electricity demand for Victoria, Australia
+
+### Description
+
+`vic_elec` is a half-hourly `tsibble` with three values:
+
+|              |                                                |
+|:-------------|:-----------------------------------------------|
+| Demand:      | Total electricity demand in MWh.               |
+| Temperature: | Temperature of Melbourne (BOM site 086071).    |
+| Holiday:     | Indicator for if that day is a public holiday. |
+|              |                                                |
+
+### Format
+
+Time series of class `tsibble`.
+
+### Details
+
+This data is for operational demand, which is the demand met by local scheduled generating units, semi-scheduled generating units, and non-scheduled intermittent generating units of aggregate capacity larger than 30 MWh, and by generation imports to the region. The operational demand excludes the demand met by non-scheduled non-intermittent generating units, non-scheduled intermittent generating units of aggregate capacity smaller than 30 MWh, exempt generation (e.g. rooftop solar, gas tri-generation, very small wind farms, etc), and demand of local scheduled loads. It also excludes some very large industrial users (such as mines or smelters).
+
+### Source
+
+Australian Energy Market Operator.
+
+#### Load the Data
+
+```{r}
+vic_elec
+```
+
+This is a highly frequent data measured after every thirty minutes. The data set has 52,608 observations with five columns. Primarily, our interest is to forecast the electricity demand in the state of Victoria, Australia. The question to be answered is how much electricity should we use to meet the available demand. We also have temperature data which is more related to the demand of electricity.
+
+#### Autoplot of Electricity Demand
+
+```{r}
+vic_elec |> 
+  autoplot(Demand)
+```
+
+### gg_season plot
+
+```{r fig.width=9}
+vic_elec |> 
+  gg_season(Demand)
+```
+
+### Index by Date and Summarize the Demand; Monthly Time Series Plot of Demand
+
+```{r}
+vic_elec |> 
+  index_by(month = yearmonth(Time)) |>
+  #index_by(date = as.Date(Time)) |>
+  # index_by(week = yearweek(Time)) |>
+  summarise(Demand = sum(Demand)) |> 
+  gg_season(Demand)
+```
+
+From the plot above, electricity demand is very high between April and September. In Australia, this is Winters season and many people are using electricity to warm their homes. However, as you can see, electricity demand is relatively high in the beginning of January all the way to February and March. What really happens in Australia during that time? In fact in 2013, there was a very high demand in electricity in March. In Australia, it can get very hot (during summer) and people are using electricity to cool their home. It other words, higher temperature (summer) and extremely lower temperature (winter) are all possible reasons for higher electricity demand in Australia.
+
+### Manipulate the Plot
+
+```{r}
+vic_elec |> 
+  #index_by(month = yearweek(Time)) |>
+  index_by(date = as.Date(Time)) |>
+  #index_by(week = yearweek(Time)) |>
+  summarise(Demand = sum(Demand)) |> 
+  gg_season(Demand)
+```
+
+If we look keenly in this plot, there is high volatility in electricity demand in summer because the whether is not reliable. That is, during this time, sometime whether can favorable (moderate high temperature but bearable) and sometime very unfavorable (very hot and unbearbale), which is reason for higher volatility in electricity during summer in Australia. However, during winter, the volatility in demand for electricity is stable. The whether in winter is much more consistent and makes it predictable. The pattern in demand is more predictable and quite smooth.
+
+### 1- Week Autoplot of Electricity Demand
+
+```{r}
+vic_elec |> 
+  # index_by(date = as.Date(Time)) |>
+  # summarise(Demand = sum(Demand)) |> 
+  gg_season(Demand, period = "1 week")
+```
+
+Looking at the plot very closely, it is evident that the demand in electricity is very high as compared to Saturday and Sunday. The general idea here is that people use in Australia uses more electricity during week days as compared to week days. However, the plot also shows that there are some days during week days where we have very low demand, that is probably during the holidays. Besides, we can see that at some points within the days electricity demand varies, that is to show that when people are sleeping, no much electricity is used. In other words, drops in electricity demand symbolised night times. We can even get more information by extracting the daily plot. Consider the plot below.
+
+### gg_season Plot for Demand (Daily)
+
+```{r}
+vic_elec |> 
+  gg_season(Demand, period = "1 day")
+```
+
+From the plot above, the minimum electricity demand is lowest around the middle of the night and very low around 4am. At the start of the day, the demand in electricity increases pretty quickly. The plot above shows that as people leave work going home electricity demand goes down. This data is highly frequent, however, the rest of training (workshop) will be dealing with monthly data, quarterly and yearly data. So we can extract monthly data form this highly frequent data set as shown below
+
+### Index by Month, Summarize (Mothly electricity Demand)
+
+```{r}
+vic_elec |> 
+  index_by(month = yearmonth(Time)) |> 
+  summarise(Demand = sum(Demand))
+```
+
+```{r}
+vic_elec |> 
+  index_by(month = yearmonth(Time)) |> 
+  summarise(Demand = sum(Demand)) |> 
+  autoplot(Demand)
+```
+
+## Seasonal Sub Series Plot
+
+1.  Data for each season collected together in time plot as separate time series.
+
+2.  Enables the underlying seasonal pattern to be seen clearly, and changes in seasonality over time to be visualized.
+
+3.  In R: gg_subseries()
+
+In seasonal sub series plot, the quarters appears as facet and not on x-axis.
+
+#### Beer Production
+
+```{r}
+aus_production
+```
+
+### Autoplot of Beer Production in Australia
+
+```{r}
+aus_production |> 
+  autoplot(Beer)
+```
+
+### Filter the Data from 1995 Q1 onward
+
+Filtering index is another way of filtering time. In this case, we will filter the index (Time = 1990 Q1 Onwards)
+
+```{r}
+recent_production <- aus_production |> 
+  filter_index("1990 Q1" ~ .)
+recent_production
+```
+
+### Make the Plot
+
+```{r}
+recent_production |> 
+  autoplot(Beer)
+```
+
+In this case, it is easier to remove the trends and model the forecast
+
+### Seasonal Plot
+
+```{r}
+recent_production |> 
+  gg_season(Beer)
+```
+
+From the plot above, maximum beer production is realized in the last quarter and the least beer production is realized in the second quarter. What we extract from the plot is how seasonality is changing over time. Consider the seasonal sub series plot below
+
+### Seasonal sub-series plot
+
+```{r}
+recent_production |> 
+  gg_subseries(Beer)
+```
+
+The seasonal sub series plot above shows that lowest beer production in quarter 2 and maximum beer production was in quarter 4, however, the seasonal is accompanied by a decrease in beer production. This is important when considering seasonality, because many models assumes that seasonality is constant, however, that is not always the case. In this workshop on day 4, we will look at ETS, exponential Smoothing which is a model that allows seasonality to change over time. Additionally, this is important when estimating decomposition. We have seen many data set that shows seasonality. Another example is tourism data.
+
+### Let us Visit Tourism Data Set One More Time
+
+```{r}
+tourism
+```
+
+### Time Series Data Filtered by Purpose and Grouped by State and Summarize (sum) Trips
+
+```{r}
+aus_holiday <- tourism |> 
+  filter(Purpose == "Holiday") |> 
+  group_by(State)
+aus_holiday
+```
+
+In the data above, we have holiday as the purpose of travel grouped by state.
+
+#### Summarize the Total Trips
+
+```{r}
+aus_holiday <- tourism |> 
+  filter(Purpose == "Holiday") |> 
+  group_by(State) |>
+  summarise(Trips = sum(Trips))
+aus_holiday
+```
+
+Now we have eight times series, that is, we have data for eight states. The data above shows the total trips grouped by states for holiday purpose
+
+### Plot the Trips
+
+```{r}
+tourism |> 
+  filter(Purpose == "Holiday") |> 
+  group_by(State) |>
+  summarise(Trips = sum(Trips))|>
+  autoplot(Trips)
+```
+
+From the plot above, most people traveled to New South Wales states. This is where Sydney is, the biggest city in Australia. The purple is the state of Victoria, the second largest city in Australia, and then Queensland where many people travel to for holidays. To have a better look of the seasonality in our data set, it would be a good idea to have a look at the seasonal plot, such as the ones we looked at earlier.
+
+### Data Preparation for Seasonal Plotting
+
+```{r}
+aus_holiday <- tourism |> 
+  filter(Purpose == "Holiday") |> 
+  group_by(State) |>
+  summarise(Trips = sum(Trips))
+aus_holiday
+```
+
+The plot below is the same as the one we have above
+
+```{r}
+aus_holiday|>
+  autoplot()
+```
+
+### Seasonal Series Plot for all States
+
+```{r}
+aus_holiday|>
+  gg_season(Trips)
+```
+
+We can some interesting patterns in the plot above. For instance, we have more holiday travels in South Wales in the first quarter, because it is summer in South Wales during that time. Its hot and warming in South Wales in quarter 1. But in the Norther Territory, we have more holiday travels in third quarter. Norther territory is very hot and dry and no one would want to visit it during summer, it will be very hot, around 40 degrees celcious. That is, during the third quarter, which is winter, many people will be willing to visit Norther Territory because during this time it is more comfortable. View the plot below.
+
+```{r}
+aus_holiday|> 
+  filter(State == "Northern Territory")|>
+  gg_season(Trips)
+```
+
+### Seasonal Sub Series Plot
+
+```{r fig.width=8, fig.height=9}
+aus_holiday|>
+  gg_subseries(Trips)
+```
+
+### Install and Load the Following Library for Some Specific Purpose (Calender Creation)
+
+```{r}
+# install.packages("sugrrants")
+library(sugrrants)
+```
+
+### Let us Visit Half-hourly electricity demand for Victoria, Australia
+
+```{r}
+vic_elec |>
+  filter(year(Date) == 2014) |>
+  mutate(Hour = hour(Time)) |>
+  frame_calendar(x = Hour, y = Demand, date = Date, nrow = 4) |>
+  ggplot(aes(x = .Hour, y = .Demand, group = Date)) +
+  geom_line() -> p1
+```
+
+#### The Plot (p1): Calender
+
+```{r}
+p1
+
+```
+
+In the plot above, we cannot tell which month is which, we shall therefore add another code to distinguish various month as shown below
+
+### Add Months to the Plot
+
+```{r}
+prettify(p1,
+         size = 3,
+         label.padding = unit(0.15, "lines")
+)
+```
+
+The calender shows the daily electricity demand for each month. We can easily identify the trends in electricity demand every days for each month. Additionally, we can identify the effect of holidays on electricity demand. For instance, the electricity demand in Easter holidays is low as compared to other days. Similar patterns are observed in December.
+
+### Let us Finalize on Few Things
+
+#### Differences between seasonal and cyclic patterns:
+
+1.  seasonal pattern constant length; cyclic pattern variable length
+
+2.  average length of cycle longer than length of seasonal pattern
+
+3.  magnitude of cycle more variable than magnitude of seasonal pattern
+
+The timing of peaks and troughs is predictable with seasonal data, but unpredictable in the long term with cyclic data.
+
+### Lag Plots and Autocorrelations
+
+#### Autocorrelation Function and Correlation
+
+This kind of plots helps to identify the autocorrelation in the data, trends and seasonality in the data set.
+
+#### Make a Standard Time Plot First
+
+```{r}
+recent_production |> 
+  autoplot(Beer)
+```
+
+The plot above shows a very strong seasonality. There is a predictable patterns in the data set, a downward trend.
+
+#### Line Plot
+
+```{r fig.width=8, fig.height=6}
+recent_production |> 
+  gg_lag(Beer)
+```
+
+#### gg_point plot
+
+```{r fig.width=9}
+recent_production |> 
+  gg_lag(Beer, geom = "point")
+```
+
+The most important function of the plot above is to show the correlation between lagged values of beer production and the actual values. The close the points are to the diagnal line the higher the correlation between the lagged and actual values of beer production. The correlation can be negative or positive, for instance, have a keen look at lag2 and lag 4. Let us now get the correlation coefficients
+
+```{r}
+recent_production |> 
+  ACF(Beer)
+```
+
+### The Auctocorrelation Plot
+
+```{r}
+recent_production |> 
+  ACF(Beer) |> 
+  autoplot()
+```
+
+Each of the line in the plot above indicated each of the facets above, (lags 1 to lag 9) . From the plot, we can see that lag4, lag8, lag12 and lag16 all have a very high correlation. This is an indication that we have seasonal pattern that occurs after every four quarters, basically after every year. That is, we have a seasonal pattern that occurs after every four quarters, however, this does not tell us
+
+## Lagged scatterplots
+
+Each graph shows 𝑦𝑡 plotted against 𝑦𝑡−𝑘 for different values of 𝑘.
+
+The autocorrelations are the correlations associated with these scatterplots.
+
+ACF (autocorrelation function):
+
+▶ 𝑟1 = Correlation(𝑦𝑡, 𝑦𝑡−1)
+
+▶ 𝑟2 = Correlation(𝑦𝑡, 𝑦𝑡−2)
+
+▶ 𝑟3 = Correlation(𝑦𝑡, 𝑦𝑡−3)
+
+▶ etc.
+
+If there is seasonality, the ACF at the seasonal lag (e.g., 12 for monthly data) will be large and positive.
+
+Let us try this on the holiday data set that we created,
+
+### Let us go Back to Australina Holiday Data
+
+```{r}
+aus_holiday
+```
+
+#### Check Many States are in the Data set and their Names
+
+```{r}
+aus_holiday |> 
+  distinct(State)
+```
+
+We have eight States and their names are Displayed Above
+
+#### Standard Plot for the Number of Plots
+
+```{r}
+aus_holiday|>
+  autoplot(Trips)
+```
+
+### Make an ACF Plot Filtered by States of Northern Territory with maximum lags as 40
+
+```{r}
+aus_holiday |> 
+  ACF(Trips)|>
+  autoplot()
+```
+
+### Autocorrelation for the Northern Territory State
+
+```{r}
+aus_holiday |> 
+  filter(State == "Northern Territory") |> 
+  ACF(Trips) |> 
+  autoplot()
+```
+
+### Compare the Autocorrelation Plot and the Actual Trend in the Data
+
+```{r}
+aus_holiday|>
+  filter(State == "Northern Territory")|>
+  autoplot(Trips)
+```
+
+From the autocorrelation plot and the standard plot above, we easily tell that there is seasonal period is four quarters. Let us get a plot with more lags and get a better view.
+
+```{r}
+aus_holiday |> 
+  filter(State == "Northern Territory") |> 
+  ACF(Trips, lag_max = 40) |> 
+  autoplot()
+```
+
+These plot tells more about how long it takes for the season to repeat itself, however, it does not shows where the peak is.
+
+## Let us us Look at Pelt Data
+
+## Pelt trading records
+
+### Description
+
+Hudson Bay Company trading records for Snowshoe Hare and Canadian Lynx furs from 1845 to 1935. This data contains trade records for all areas of the company.
+
+### Format
+
+Time series of class `tsibble`
+
+### Details
+
+`pelt` is an annual `tsibble` with two values:
+
+|       |                                           |
+|:------|:------------------------------------------|
+| Hare: | The number of Snowshoe Hare pelts traded. |
+| Lynx: | The number of Canadian Lynx pelts traded. |
+|       |                                           |
+
+### Source
+
+Hudson Bay Company
+
+### View the Data
+
+```{r}
+pelt
+```
+
+#### Time Series Plot of Number of Snowshoe Hare Pelts Traded
+
+```{r}
+pelt |> 
+  autoplot(Hare)
+```
+
+### Plot the ACF
+
+```{r}
+pelt |> 
+  ACF(Hare) |> 
+  autoplot()
+```
+
+## AS Unemployment Data
+
+```{r}
+us_employment
+```
+
+### Standard Time Series Plot
+
+```{r}
+retail <- us_employment |>
+  filter(Title == "Retail Trade", year(Month) >= 1980)
+retail |> autoplot(Employed)
+  
+```
+
+The plot above shows that there is trends, seasonality and cycles in the us employment data.
+
+### ACF Plot for US Employment Data
+
+```{r}
+retail |>
+  ACF(Employed, lag_max = 48) |>
+  autoplot()
+```
+
+We have positive correlation but the magnitude of correlation decreases. The gradual decreasing tell that we have a trend in our data set. In the standard plot above, the trend is the biggest feature and therefore we can not clearly see the seasonal aspects in the autocorrelation plot. Seasonality in our data set is quite small as compared to trend. But if we look keenly at lag 12, 24, and 36, there is a slight change shows seasonality in our data set.
+
+## GOOGLE Stock Prices
+
+```{r}
+google_2017 <- gafa_stock |> 
+  filter(Symbol == "GOOG", year(Date) == 2017) |>
+  select(Date, Close)
+google_2017
+```
+
+### Standard Times Series Plot
+
+```{r}
+google_2017|>
+  autoplot(Close)
+```
+
+### ACF Plot
+
+```{r}
+google_2017 |>
+  ACF(Close, lag_max = 100) |>
+  autoplot()
+```
+
+### USA Account Deaths
+
+```{r}
+USAccDeaths
+```
+
+### Standard Plot
+
+```{r}
+as_tsibble(USAccDeaths) |>
+  autoplot()
+```
+
+### ACF Plot
+
+```{r}
+as_tsibble(USAccDeaths) |> 
+  ACF(value) |> 
+  autoplot()
+```
+
+# Note
+
+Times series model should capture all the infomation available. To ensure that, the residual of our model should follow a normal distribution with a mean of zero and a constant variance. Let us create a tibble make a plot out of it and an ACF
+
+### Simple Code on How to Create a tsibble Object
+
+```{r}
+random <- tsibble(
+  year = 1724:2023,
+  y = rnorm(300, mean = 45, sd = 7.5),
+  index = year
+)
+random
+```
+
+```{r}
+random |> 
+  autoplot(y)
+
+random |> 
+  ACF(y) |> 
+  autoplot()
+```
+
+From the ACF, can see that all the vertical lines are contained with the blue dash lines. This is an indication that the residuals are white noise, that is, there is not pattern in the residuals, and so they are white noise. White noise is a technical term to show that there is no pattern in the residuals of our model. If the residuals are not white noise, then there is more information we can still extract from the residuals to help us in our prediction. White noise data is uncorrelated across time with zero mean and constant variance. (Technically, we require independence as well.)

@@ -1,0 +1,2477 @@
+---
+title: "PRINCIPLES OF TIME SERIES FORECASRING IN R"
+author: "Lumumba Wandera Victor\n \\vspace{1in} "
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE,comment = NA, message=FALSE,
+                      fig.height=7, fig.width=9)
+```
+
+\newpage
+# DAY ONE
+## LECTURE
+## Tidy time series & forecasting in R
+### Course Overview
+Forecasting is a valuable tool that allows organizations to make informed decisions about the future. Time series forecasting, in particular, uses historical data to predict future trends over time. This technique has extensive applications across a wide range of fields, including finance and economics, health and humanitarian operations, supply chain management, and more. By analyzing trends and patterns in data, time series forecasting can help decision-makers identify potential challenges and opportunities, and plan accordingly.
+
+It is important for researchers in Low- and Middle-Income Countries (LMICs) to develop technical skill in data analysis and forecasting techniques, which are essential for accurate and reliable forecasting. By having these skills, researchers can analyze data, identify trends and patterns, and develop robust forecasting models to make informed decisions that can improve resource allocation and planning in LMICs. Additionally, researchers can collaborate with policy makers and stakeholders to ensure that the forecast results are integrated into decision-making processes, leading to more efficient and effective resource management strategies. This workshop is part of the Forecasting for Social Good (F4SG) initiative, and will run online from the 23rd-27th October 2023.
+
+### Learning objectives
+During the training, participants will gain knowledge and skills in:
+
+* Preparing time series data for analysis and exploration.
+* Extracting and computing useful features from time series data and effectively visualizing it.
+* Identifying appropriate forecasting algorithms for time series and selecting the best approach for the data at hand.
+
+## Educators
+### Instructor
+```{r}
+knitr::include_graphics("instructor.png")
+```
+
+Mitchell O’Hara-Wild (he/him) is a PhD student at Monash University, creating new techniques and tools for forecasting large collections of time series with Rob Hyndman and George Athanasopoulos. He is the lead developer of the tidy time-series forecasting tools fable and feasts, and has co-developed the widely used forecast package since 2015. Mitchell also operates a data consultancy, and has worked on many forecasting projects that have supported decision making and planning for businesses and governments. He is an award-winning educator, and has taught applied forecasting at Monash University and various forecasting workshops around the world.
+
+# Instructor
+```{r}
+knitr::include_graphics("lead.png")
+```
+
+Bahman is a Reader (Associate Professor) in Data-Driven Decision Science at Cardiff Business School, Cardiff University, UK. He serves as the director of the Data Lab for Social Good Research Group at Cardiff University and is also the founder of the Forecasting for Social Good committee within the International Institute of Forecasters. Bahman specializes in the development and application of modelling, forecasting and management science tools and techniques providing informed insights for planning & decision-making processes in sectors contributing to social good, including healthcare operations, global health and humanitarian supply chains, agriculture and food, social sustainability, and governmental policy. His collaborative efforts have spanned a multitude of organisations, including notable bodies such as the National Health Service (NHS), Welsh Ambulance Service Trusts (WAST), United States Agency for International Developments (USAID), the International Committee of the Red Cross (ICRC), and John Snow Inc. (JSI). A remarkable highlight of his contributions is his pivotal role in disseminating forecasting knowledge especially in low and lower-middle income countries through the democratizing forecasting project sponsored by International Institute of Forecasters.
+
+## Mentors for the cohort 2023
+A committed team, comprising both PhD students and MSc. students, generously dedicates their time and expertise to offer valuable support to learners throughout the duration of the workshop to help learners with the excercises. The team includes:
+
+* Harsha Halgamuwe Hewage
+* Josephine Valensia
+* Krisanat Anukarnsakulchularp
+* Laiba Khan
+* Mandy Luon
+* Mingzhe Shi
+* Sneha Kharbanda
+* Zihao Wang
+
+## Project coordination
+The coordination and administration of the project are overseen by a dedicated team from Jomo Kenyatta University of Agriculture and Technology. This includes tasks such as promoting the workshop across various countries, managing the intake of 138 applications from 13 different nations, conducting a thorough shortlisting process and selecting 62 participants, and maintaining effective communication with all attendees.
+
+## Jomo Kenyatta University team includes:
+Henry Kissinger Ochieng
+Caroline Mugo
+Winnie Chacha
+Samuel Mwalili
+
+## Preparation
+The workshop will provide a quick-start overview of exploring time series data and producing forecasts. There is no need for prior experience in time series to get the most out of this workshop. It is expected that you are comfortable with writing R codes and using tidyverse packages including dplyr and ggplot2. If you are unfamiliar with writing R code or using the tidyverse, consider working through the learnr materials here: https://learnr.numbat.space/. Some familiarity with statistical concepts such as the mean, variance, quantiles, normal distribution, and regression would be helpful to better understand the forecasts, although this is not strictly necessary.
+
+## Required equipment
+Please have your own laptop capable of running R.
+
+## Required software
+To be able to complete the exercises of this workshop, please install a suitable IDE (such as RStudio), a recent version of R (4.1+) and the following packages.
+
+## Time series packages and extensions
+* fpp3, sugrrants
+* tidyverse packages and friends
+* tidyverse, fpp3
+
+The following code will install the main packages needed for the workshop.
+```{r}
+# install.packages(c("tidyverse","fpp3", "GGally", "sugrrants", "astsa"))
+```
+
+### Note!!! 
+Please have the required software installed and pre-work completed before attending the workshop.
+
+### Install the following Libraries
+```{r}
+#install.packages(c("tidyverse","fpp3", "GGally", "sugrrants", "astsa"))
+```
+
+## Assumptions
+* This is not an introduction to R. We assume you are broadly comfortable with R code, the RStudio environment and the tidyverse.
+* This is not a statistics course. We assume you are familiar with concepts such as the mean, standard deviation, quantiles, regression, normal distribution, likelihood, etc.
+* This is not a theory course. We are not going to derive anything. We will teach you time series and forecasting tools, when to use them, and how to use them most effectively. 5
+
+## International Institute of Forecasters (IIF)
+* Certificate will be provided by IIF. You need to attend all lectures and exercise sessions to get the certificate.
+* IIF is a nonprofit organization founded in 1982, and is dedicated to developing and furthering the generation, distribution, and use of knowledge on forecasting
+
+## Approximate outline
++---------+-------------------------------------------+------------+
+|Session  |Topic                                      |Chapter     | 
++---------+-------------------------------------------+------------+
+|1 1.     | Basics of time series and data structures |    2       |
+|1 2.     |Time series patterns and basic graphics    |    2       |
+|2 3.     |Transforming / adjusting time series       |    3       |
+|2 4.     | Computing and visualizing features        |    4       |
+|3 5.     |Basic modeling / forecasting               |  1,3,5     |
+|3 6.     |Forecasting with regression                |   7,10     |
+|4 7.     |Exponential smoothing                      |    8       |
+|4 8.     |ARIMA models                               |    9       |
+|5 9.     |Basic training and test accuracy           |    5       |
+|5 10.    |Residual diagnostics and cross validation  |    5       |
++---------|-------------------------------------------+------------+
+
+# BASICS OF TIME SERIES AND DATA STRUCTURE
+### 1.Introduction to forecasting
+### 2. Time series data and tsibbles
+### 3. Example: Australian prison population
+### 4. Example: Australian pharmaceutical sales
+
+### What is a forecast?
+Forecasting is estimating how the sequence of observations will continue into the future based on all of the information available at the time when we generate the forecast.
+
+### What data do we need for forecasting?
+Forecasting is estimating how the sequence of observations will continue into the future based on all of the information available at the time when we generate the forecast:
+1 Past/historical time series data on the variable we intend to forecast
+2 Past and future data about deterministic predictors/regressors
+3 Past and future data about stochastic predictors/regressors
+4 Expertise of individuals in an organization and any contextual information that may affect the forecast variable
+
+### Why does an organisation need forecast?
+* Why do you use forecast?
+
+Forecasting required in many situation Forecast. 
+1. Whether to build a new hospital in next 10 years? ?
+2. How many staff does a call center need next week? ?
+3. How many dose of vaccine is required next month? ?
+
+* An important aid to planning and decision making
+▶ To inform decisions
+▶ To provide evidences
+
+### FORECASTING WORKFLOW
+```{r}
+knitr::include_graphics("FLOW.png")
+```
+
+## Time series data and tsibbles
+### Time series data
+1. Four-yearly Olympic winning times
+2. Annual Google profits
+3. Quarterly Australian beer production
+4. Monthly rainfall
+5. Weekly retail sales
+6. Daily IBM stock prices
+7. Hourly electricity demand
+8. 5-minute freeway traffic counts
+9. Time-stamped stock transaction data
+
+## Class packages
+```{r}
+# Data manipulation
+library(dplyr)
+# Plotting functions
+library(ggplot2)
+# Time and date manipulation
+library(lubridate)
+# Time series class
+library(tsibble)
+# Tidy time series data
+library(tsibbledata)
+# Time series graphics and statistics
+library(feasts)
+# Forecasting functions
+library(fable)
+```
+
+All the above libraries can be installed using one library, the one below
+```{r}
+library(fpp3)
+```
+
+## TSIBBLE OBJECT 
+### Example 1
+```{r}
+global_economy
+```
+
+```{r}
+knitr::include_graphics("image1.png")
+```
+
+### Example 2
+```{r}
+tourism
+```
+
+Domestic visitor nights in thousands by state/region and purpose.
+
+```{r}
+knitr::include_graphics("image2.png")
+```
+
+### tsibble objects
+* A tsibble allows storage and manipulation of multiple time series in R.
+* It contains:
+1. n index: time information about the observation
+2. Measured variable(s): numbers of interest
+3. ey variable(s): optional unique identifiers for each series
+* It works with tidyverse functions.
+
+##The tsibble index
+Let us do some practice on creating a tibble object.
+Example
+```{r}
+mydata <- tsibble(
+  year = 2012:2016,
+  y = c(123, 39, 78, 52, 110),
+  index = year
+  )
+mydata
+```
+
+## The tsibble index
+Common time index variables can be created with these functions:
+|------------------|-------------------|
+|Frequency         |      Function     |
+|Annual            |      start:end    |
+|Quarterly         |      yearquarter()|
+|Monthly           |      yearmonth()  |
+|Weekly            |      yearweek()   |
+|Daily             |   as_date(), ymd()|
+|Sub-daily         |     as_datetime() |
+|------------------|-------------------|
+
+### Example: Australian pharmaceutical sales
+The Pharmaceutical Benefits Scheme (PBS) is the Australian government drugs subsidy scheme.
+* Many drugs bought from pharmacies are subsidised to allow
+* more equitable access to modern drugs.
+* The cost to government is determined by the number and types of drugs purchased. Currently nearly 1% of GDP.
+* The total cost is budgeted based on forecasts of drug usage.
+* Costs are disaggregated by drug type (ATC1 x15 / ATC2 84), concession category (x2) and patient type (x2), giving 84 × 2 × 2 = 336 time series.
+
+```{r}
+PBS
+```
+
+### Working with tsibble objects
+We can use the filter() function to select rows.
+```{r}
+PBS |>
+  filter(ATC2 == "A10")
+```
+
+We can use the select() function to select columns.
+```{r}
+PBS |>
+  filter(ATC2 == "A10") |>
+  select(Month, Concession, Type, Cost)
+```
+
+We can use the summarise() function to summarise over keys.
+
+```{r}
+PBS |>
+  filter(ATC2 == "A10") |>
+  select(Month, Concession, Type, Cost)
+```
+
+```{r}
+PBS |>
+  filter(ATC2 == "A10") |>
+  select(Month, Concession, Type, Cost) |>
+  summarise(total_cost = sum(Cost))
+```
+
+We can use the mutate() function to create new variables.
+```{r}
+PBS |>
+  filter(ATC2 == "A10") |>
+  select(Month, Concession, Type, Cost) |>
+  summarise(total_cost = sum(Cost)) |>
+  mutate(total_cost = total_cost / 1e6)
+```
+
+```{r}
+PBS |>
+  filter(ATC2 == "A10") |>
+  select(Month, Concession, Type, Cost) |>
+  summarise(total_cost = sum(Cost)) |>
+  mutate(total_cost = total_cost / 1e6)
+```
+
+# TIME SERIES PATTERNS AND BASIC GRAPHICS
+## Outline
+1 Time series Patterns
+2 Time plots
+3 Seasonal plots
+4 Seasonal or cyclic?
+5 Lag plots and autocorrelation
+6 White noise
+
+## Key patterns of time series
+1. Level
+2. Underlying trend
+3. Seasonal/cycle
+4. Autocorrelation
+5. Unpredictable patterns/Noise
+6. Different types of events and driving factors (i.e. predictors) may affect the time series
+
+## Time series patterns
+1. Level: The level of a time series describes the center of the series.
+2. Trend: A trend describes predictable increases or decreases in the level of a series.
+3. Seasonal: Seasonality is a consistent pattern that repeats over a fixed period of time. pattern exists when a series is influenced by seasonal factors (e.g., the quarter of the year, the month, or day of the week).
+4. Cyclic pattern exists when data exhibit rises and falls that are not of fixed period (duration usually of at least 2 years).
+
+### TIME PLOTS
+We shall use passenger data from Ansett Australian Airline 
+```{r}
+ansett
+```
+
+```{r}
+ansett %>% 
+  filter(Airports=="MEL-SYD", Class=="Economy") %>%
+  autoplot(Passengers)
+```
+
+### Time series plot of Pharmaceutical Benefits Scheme
+```{r}
+PBS %>% filter(ATC2 == "A10") %>% 
+  summarise(Cost = sum(Cost)/1e6) %>% autoplot(Cost) +
+  ylab("$ million") + xlab("Year") +
+  ggtitle("Antidiabetic drug sales")
+```
+
+### Seasonal Plot
+1. Data plotted against the individual “seasons” in which the data were observed. (In this case a “season” is a month.) 
+2. Something like a time plot except that the data from each season are overlapped.
+3. Enables the underlying seasonal pattern to be seen more clearly, and also allows any substantial departures from the seasonal pattern to be easily identified. 
+4. In R: gg_season()
+
+### Let us look at Australian Beer Production
+```{r}
+beer <- aus_production |> 
+  select(Quarter, Beer) |>
+  filter(year(Quarter) >= 1992)
+beer |> autoplot(Beer)
+```
+
+### Lets us now use gg_season
+```{r}
+beer |> 
+  gg_season(Beer, labels = "right")
+```
+
+### Multiple seasonal periods (Demand for Electricity)
+```{r}
+vic_elec
+```
+
+### Hourly Times Series Plot of Electricity Demand
+```{r fig.width=8}
+vic_elec |> 
+  gg_season(Demand)
+```
+
+### Weekly Time Series Plot
+```{r fig.width=7}
+vic_elec |> 
+  gg_season(Demand, period = "week")
+```
+
+### Daily Time Series Plot
+```{r}
+vic_elec |> 
+  gg_season(Demand, period = "day")
+```
+
+### Seasonal subseries plots
+* Data for each season collected together in time plot as separate time series.
+* Enables the underlying seasonal pattern to be seen clearly, and changes in seasonality over time to be visualized.
+* In R: gg_subseries()
+
+```{r}
+beer |> 
+  gg_subseries(Beer)
+```
+
+## Australian holidays
+```{r}
+tourism
+```
+
+```{r}
+holidays <- tourism |>
+  filter(Purpose == "Holiday") |>
+  group_by(State) |>
+  summarise(Trips = sum(Trips))
+holidays
+```
+
+```{r fig.width=9}
+holidays |> autoplot(Trips) +
+  labs(y = "thousands of trips", title = "Australian domestic holiday nights")
+```
+
+## Seasonal plots
+```{r fig.width=8, fig.height=6}
+holidays |> gg_season(Trips) +
+  labs(y = "thousands of trips", title = "Australian domestic holiday nights")
+```
+
+### Seasonal subseries plots
+```{r fig.width=8, fig.height=6}
+holidays |> gg_subseries(Trips) +
+  labs(y = "thousands of trips", title = "Australian domestic holiday nights")
+
+```
+
+### Calendar plots
+```{r}
+library(sugrrants)
+vic_elec |>
+  filter(year(Date) == 2014) |>
+  mutate(Hour = hour(Time)) |>
+  frame_calendar(x = Hour, y = Demand, date = Date, nrow = 4) |>
+  ggplot(aes(x = .Hour, y = .Demand, group = Date)) +
+  geom_line() -> p1
+
+prettify(p1,
+         size = 3,
+         label.padding = unit(0.15, "lines")
+)
+```
+
+* frame_calendar() makes a compact calendar plot
+* facet_calendar() provides an easier ggplot2 integration.
+
+## Seasonal or Cyclic
+### Time series patterns
+1. Trend pattern exists when there is a long-term increase or decrease in the data.
+2. Seasonal pattern exists when a series is influenced by seasonal factors (e.g., the quarter of the year, the month, or day of the week).
+3. Cyclic pattern exists when data exhibit rises and falls that are not of fixed period (duration usually of at least 2 years).
+
+## Time series components
+### Differences between seasonal and cyclic patterns:
+1. seasonal pattern constant length; cyclic pattern variable length
+2. average length of cycle longer than length of seasonal pattern
+3. magnitude of cycle more variable than magnitude of seasonal pattern
+
+Consider the plot below
+```{r}
+aus_production |>
+  filter(year(Quarter) >= 1980) |>
+  autoplot(Electricity) +
+  labs(y = "GWh", title = "Australian electricity production")
+```
+
+```{r}
+aus_production |> 
+  autoplot(Bricks) +
+  labs(title = "Australian clay brick production",
+       x = "Year", y = "million units")
+```
+
+```{r}
+us_employment |>
+  filter(Title == "Retail Trade", year(Month) >= 1980) |>
+  autoplot(Employed / 1e3) +
+  labs(title = "Retail employment, USA", y = "Million people")
+```
+
+```{r}
+gafa_stock |> 
+  filter(Symbol == "AMZN", year(Date) >= 2018) |>
+  autoplot(Close) +
+  labs(title = "Amazon closing stock price", x = "Day", y = "$")
+```
+
+```{r}
+pelt |>
+  autoplot(Lynx) +
+  labs(title = "Annual Canadian Lynx Trappings",
+       x = "Year", y = "Number trapped")
+```
+
+One thing to note is that the timing of peaks and troughs is predictable with seasonal data, but unpredictable in the long term with cyclic data
+
+## LAGS AND AUTOCORRELATION PLOTS
+```{r}
+aus_production
+new_production <- aus_production |> 
+  filter(year(Quarter) >= 1992)
+new_production
+```
+
+```{r fig.width=8, fig.height=7}
+new_production |> gg_lag(Beer)
+```
+
+```{r fig.width=8, fig.height=7}
+new_production |> gg_lag(Beer, geom = "point")
+```
+
+### Lagged scatterplots
+Each graph shows 𝑦𝑡 plotted against 𝑦𝑡−𝑘 for different values of 𝑘. The autocorrelations are the correlations associated with these scatterplots.
+ACF (autocorrelation function):
+▶ 𝑟1 = Correlation(𝑦𝑡, 𝑦𝑡−1)
+▶ 𝑟2 = Correlation(𝑦𝑡, 𝑦𝑡−2)
+▶ 𝑟3 = Correlation(𝑦𝑡, 𝑦𝑡−3)
+▶ etc.
+If there is seasonality, the ACF at the seasonal lag (e.g., 12 for monthly data) will be large and positive.
+
+## Results for first 9 lags for beer data:
+```{r}
+new_production |> 
+  ACF(Beer, lag_max = 9)
+```
+
+```{r}
+new_production |> 
+  ACF(Beer, lag_max = 9) |>
+  autoplot()
+```
+
+```{r}
+new_production |>
+  ACF(Beer) |>
+  autoplot()
+```
+
+### Australian holidays
+```{r}
+holidays |> 
+  ACF(Trips)
+```
+
+```{r}
+holidays |> 
+  ACF(Trips) |> 
+  autoplot()
+```
+
+###  View the States in the Data set
+```{r}
+holidays |>
+  distinct(State)
+```
+
+```{r}
+holidays |> 
+  ACF(Trips) |> 
+  autoplot()
+```
+
+## Trend and seasonality in ACF plots
+1. When data have a trend, the autocorrelations for small lags tend to be large and positive.
+2. When data are seasonal, the autocorrelations will be larger at the seasonal lags (i.e., at multiples of the seasonal frequency)
+3. When data are trended and seasonal, you see a combination of these effects.
+
+### US retail trade employment
+```{r}
+retail <- us_employment |> 
+  filter(Title == "Retail Trade", year(Month) >= 1980)
+retail |> autoplot(Employed)
+```
+
+### Autocorrelation Function
+```{r}
+retail |>
+  ACF(Employed, lag_max = 48) |>
+  autoplot()
+```
+
+## Google Stock Prices
+```{r}
+google_2015 <- gafa_stock |>
+  filter(Symbol == "GOOG", year(Date) == 2015) |>
+  select(Date, Close)
+google_2015
+```
+
+```{r}
+google_2015 |> 
+  autoplot(Close)
+```
+
+### Autocorrelation Function 
+```{r}
+google_2015 |>
+  ACF(Close, lag_max = 100) |>
+  autoplot()
+```
+
+### White noise
+The residuals must have be normally distributed with a mean of zero and a constant variance. White noise data is uncorrelated across time
+with zero mean and constant variance. (Technically, we require independence as well.)
+```{r}
+wn <- tsibble(t = seq(300), y = rnorm(300), index = t)
+wn |> 
+  autoplot(y)
+```
+
+```{r}
+wn |> 
+  ACF(y)|>
+  autoplot()
+```
+
+* Sample autocorrelations for white noise series.
+* Expect each autocorrelation to be close to zero.
+* Blue lines show 95% critical values.
+
+### Example: Pigs slaughtered
+Monthly total number of pigs slaughtered in the state of Victoria, Australia, from January 2014 through December 2018 (Source: Australian Bureau of Statistics.)
+
+```{r}
+pigs <- aus_livestock |>
+  filter(State == "Victoria", Animal == "Pigs", year(Month) >= 2014)
+
+pigs
+```
+
+```{r}
+pigs |> autoplot(Count / 1e3) +
+  labs(x = "Year", y = "Thousands",
+       title = "Number of pigs slaughtered in Victoria")
+```
+
+### Autocorrelation Function
+```{r}
+pigs |>
+  ACF(Count) |>
+  autoplot()
+```
+
+Difficult to detect pattern in time plot. ACF shows significant autocorrelation for lag 2 and 12. Indicate some slight seasonality. These show the series is not a white noise series.
+
+
+
+## EXERCISE
+### DATE
+### October 23, 2023
+
+### Set-up
+We’ve prepared an exercises project with some starter code for each of the sessions. You can download and open this project using:
+```{r}
+#usethis::use_course("https://workshop.f4sg.org/africast/exercises.zip")
+```
+
+## Learn
+Creating a time series tibble (a tsibble!). A tsibble is a rectangular data frame that contains:
+
+* a time column: the index
+* identifying column(s): the key variables
+* values (the measured variables)
+
+You usually create a tsibble by converting an existing dataset (read from a file) with as_tsibble(). For example, let’s look at the production of rice in Guinea.
+
+```{r}
+# Read in the dataset using readr
+library(readr)
+guinea_rice <- read.csv("guinea_rice.csv")
+
+# Convert the dataset to a tsibble
+# Here the index variable is 'Year', and there are no key variables.
+# The 'Production' variable is what we're interested in forecasting (the measured variable).
+library(tsibble)
+guinea_rice <- as_tsibble(guinea_rice, index = Year)
+guinea_rice
+```
+
+
+A tsibble enables time-aware data manipulation, which makes it easy to work with time series. It also has extra checks to prevent common errors, while these can be frustrating at first they are important in correctly analyzing your data. There are two common mistakes when creating a tsibble, which we’ll see in the next example of Australian accommodation.
+
+```{r}
+# Read in the dataset using readr
+aus_accommodation <- read.csv("aus_accommodation.csv")
+
+# Try to convert the dataset to a tsibble
+#aus_accommodation <- as_tsibble(aus_accommodation, index = Date)
+```
+
+## That didn’t worK!!
+Reading the error says we have ‘duplicated rows’. What this means is that we have two or more rows in the dataset for the same point in time. In time series it isn’t possible to get two different values at the same time, but it is possible to measure several different things at the same time.
+
+When you get this error, consider if any of the dataset’s variables can identify individual series.
+
+## Tip!!
+The identifying key variables of a time series are usually character variables, and the measured variables are almost always numeric.
+```{r}
+aus_accommodation
+```
+
+### Question
+Which of these variable(s) identifies each time series?
+
+In this dataset we have accommodation data from all 8 states in Australia, and so we need to specify State as a key variable when creating our tsibble.
+```{r}
+# Try to convert the dataset to a tsibble
+#aus_accommodation <- as_tsibble(aus_accommodation, index = Date, key = State)
+#aus_accommodation
+```
+
+## However there’s still one thing that isn’t right !!!
+In the first row of the output we see [1D] - this means that the frequency of the data is daily.
+
+Looking at the index column (Date), we can see that each point in time is three months apart - or quarterly. This is another common mistake when working with time series, you need to set the appropriate temporal granularity.
+
+## What is temporal granularity?
+Temporal granularity is the resolution in time. The time variable needs to match this resolution. In this example, a date was used to represent quarters, but instead we must use yearquarter() to match the temporal granularity.
+
+```{r}
+# Convert the `Date` column to quarterly with dplyr
+library(dplyr)
+aus_accommodation <- aus_accommodation |> 
+  mutate(Date = yearquarter(Date)) |> 
+  as_tsibble(index = Date, key = State)
+aus_accommodation
+```
+
+Now we have a tsibble that’s ready to use! In the first row of the output you should now see [1Q] indicating that the data is quarterly. You can also see the second row shows us our key variable, State. Next to this is [8], which tells us that this dataset contains 8 time series (one for each of Australia’s states).
+
+### Pipes
+When chaining together multiple functions, it’s helpful to use the pipe operator (|>). The pipe allows you to read the functions in the order that they are used - much like a sentence! More information is here: https://r4ds.hadley.nz/workflow-style.html#sec-pipes. That’s all you need to know about creating a tidy time series tsibble
+
+# YOUR TURN
+Create a tsibble for the number of tourists visiting Australia contained in data/tourism.csv. Some starter code has been provided for you in the day 1 exercises.
+
+###Hint!!
+This dataset contains multiple key variables that need to be used together. You can specify multiple keys with as_tsibble(key = c(a, b, c)).
+```{r}
+tourism <- read.csv("tourism.csv")
+tourism
+```
+
+### Creating a tsibble
+```{r}
+tourism <- tourism |> 
+  mutate(Quarter = yearquarter(Quarter)) |> 
+  as_tsibble(index = Quarter, key = c(Region,State,Purpose))
+tourism
+```
+
+## Manipulating time series
+Often you want to work with specific series, or perhaps the sum up the values across multiple series. We can use the same dplyr functions that are used in data analysis to explore our time series. Let’s focus on a single state from the Australian accommodation example - here we use filter() to keep only the Queensland data.
+```{r}
+aus_accommodation |> 
+  filter(State == "Queensland")
+```
+
+Maybe we wanted to focus on the more recent data, only keeping observations after 2010. Note that multiple conditions (both time and place) can be included inside a single filter() function.
+```{r}
+aus_accommodation |> 
+  filter(State == "Queensland", Date >= yearquarter("2010 Q1"))
+```
+
+Let’s try seeing the total accommodation Takings and Occupancy for all of Australia. For this, we can use the summarise() function to summarise information across multiple rows.
+```{r}
+aus_accommodation |> 
+  summarise(Takings = sum(Takings), Occupancy = sum(Occupancy))
+```
+
+### The index and summarise()
+We still have our Date variable as it is automatically grouped when working with tsibble. What about calculating the annual takings, not quarterly? For this we use a special grouping function called index_by().
+```{r}
+library(lubridate)
+aus_accommodation |> 
+  index_by(Year = year(Date)) |> 
+  summarise(Takings = sum(Takings), Occupancy = sum(Occupancy))
+```
+
+# YOUR TURN
+Using the tourism dataset, create an annual time series of the Purpose of travel for visitors to Australia (summing over State and Region) Some starter code has been provided for you in the day 1 exercises.
+
+*Hint:* think about which key variables should be kept with group_by(), and how the index should be changed using index_by() then summarise().
+```{r}
+tourism
+```
+
+```{r}
+tourism |> 
+  group_by(Region, State)|>
+  index_by(Year = year(Quarter))|> 
+  summarise(Trips = sum(Trips))
+```
+
+What if we didn’t want a time series at all? To calculate the total takings over all of time, we convert back to an ordinary data frame with as_tibble() and then summarise().
+
+```{r}
+library(lubridate)
+aus_accommodation |> 
+  as_tibble() |> 
+  summarise(Takings = sum(Takings), Occupancy = sum(Occupancy))
+```
+
+Which state has had the most accommodation takings in 2010? Let’s calculate total takings by state for 2010, and sort them with arrange().
+```{r}
+aus_accommodation |> 
+  filter(year(Date) == 2010) |> 
+  as_tibble() |> 
+  group_by(State) |> 
+  summarise(Takings = sum(Takings), Occupancy = sum(Occupancy)) |> 
+  arrange(desc(Takings))
+```
+
+# YOUR TURN
+Using the tourism dataset, which Purpose of travel is most common in each state? Some starter code has been provided for you in the day 1 exercises.
+Hint: since you no longer want to consider changes over time, you’ll need to convert the data back to a tibble.
+```{r}
+tourism |> 
+  as_tibble() |> 
+  group_by(State, Purpose)|>
+  summarize(Count = n()) |>
+  arrange(State, desc(Count)) |>
+  group_by(State)|>
+  slice(3)
+```
+
+### Visualising time series
+There are a few common visualisation techniques specific to time series, however cross-sectional graphics also work well for time series data. The main difference is that we like to maintain the ordered and connected nature of time.
+
+### Time plots
+The simplest graphic for time series is the time series plot, which shows the variable of interest (on the y-axis) against time (on the x-axis). This plot can be created manually with ggplot2, or automatically plotted from the tsibble with autoplot().
+
+```{r}
+library(fable)
+library(ggplot2)
+guinea_rice |> 
+  autoplot(Production)
+```
+
+In this plot we can see that Production increases over time (known as trend). The increase is mostly smooth but there are a couple anomalies in 2001 and 2008.
+
+### Plotting the time variable
+In this plot, Production and Year are two continuous variables. We would often like to plot two continuous variables with a scatter plot, however in time-series we prefer to connect the observations from one year to the next to give this line chart.
+
+We can also use autoplot() to produce a time plot of many series, but be careful not to plot too many lines at once!
+```{r}
+aus_accommodation
+```
+
+```{r fig.width=8, fig.height=6}
+aus_accommodation |> 
+  autoplot(Takings)
+```
+
+In this plot of Australian accommodation takings, we see that most states have increasing takings over time (upward trend). We can also notice a repeating up and down pattern, which upon closer inspection repeats every year. This repeating annual pattern is known as seasonality, and we can see that some states are more seasonal than others.
+
+Let’s focus on the sunny holiday destination of Queensland and Victoria, and use different plots to better understand the seasonality.
+```{r}
+aus_accommodation |> 
+  filter(State == "Queensland"|
+           State == "Victoria") |> 
+  autoplot(Takings)
+```
+
+# YOUR TURN!
+Using the tourism dataset, create time plots of the data. Which patterns can you observe? Some starter code has been provided for you in the day 1 exercises.
+
+Hint: there are too many series to show in a single plot, so filter and summarise series of interest to you.
+```{r}
+tourism
+```
+
+```{r}
+holidays <- tourism |>
+  filter(Purpose == "Holiday") |>
+  group_by(State) |>
+  summarise(Trips = sum(Trips))
+holidays
+```
+
+```{r fig.width=9}
+holidays |> autoplot(Trips) +
+  labs(y = "thousands of trips", title = "Australian domestic holiday nights")
+```
+
+## Seasonal plots
+It can be tricky to see which quarter has maximum accommodation takings from a time plot. Instead, it is better to use a seasonal plot with gg_season() from feasts.
+```{r fig.width=9}
+library(feasts)
+aus_accommodation |> 
+  filter(State == "Queensland") |> 
+  gg_season(Takings)
+```
+
+Here we can see that the Q3 and Q4 takings are higher than Q1 and Q2, this is known as the seasonal peak and trough respectively.
+
+## The season plot
+The seasonal plot is very similar to the time plot, but the x-axis now wraps over years. This allows us to more easily compare the years and find common patterns, like which month or quarter is biggest and smallest.
+
+# YOUR TURN
+Using the tourism dataset, create a seasonal plot for the total holiday travel to Australia over time. In which quarter is holiday travel highest and lowest?
+Some starter code has been provided for you in the day 1 exercises.
+
+```{r}
+library(feasts)
+holidays |> 
+  filter(State == "New South Wales") |> 
+  gg_season(Trips)
+```
+
+### Seasonal subseries plot
+Another useful plot to understand the seasonal pattern of a time series is the subseries plot, it can be created with gg_subseries(). This plot is splits each month / quarter into separate facets (mini-plots), which shows how the values within each season change over time. The blue lines represent the average, which is a useful way to see the overall seasonality at a glance.
+```{r}
+aus_accommodation |> 
+  filter(State == "Queensland") |> 
+  gg_subseries(Takings)
+```
+
+
+### Seasonal sub-series plots
+The upward lines in each facet of this plot shows the trend of the data, however if the lines went in different directions that would imply the shape of the seasonality is changing over time. Seasonal plots work best after removing trend, which we will see how to do tomorrow!
+
+Let’s see this plot with a different dataset, recent beer production in Australia.
+```{r}
+aus_production
+```
+
+```{r}
+aus_beer <- tsibbledata::aus_production |> 
+  filter(Quarter >= yearquarter("1992 Q1")) |> 
+  select(Beer)
+aus_beer |> 
+  autoplot(Beer)
+```
+
+At a glance, this looks like the it is very seasonal and has a slight downward trend. However the seasonal subseries plot reveals that the trend is misleading!
+```{r}
+aus_beer |> 
+  gg_subseries(Beer)
+```
+
+Here we see that only Q4 (the peak) has a downward trend, while the other quarters are staying roughly the same. The seasonality is changing shape over time.
+
+### Changing seasonality
+Look back at the time plot and focus only on the Q4 peaks, can you see these values decreasing over time? Now look at the Q1-Q3 throughs, how do they change over time? This can be tricky to notice in the time plot, which is why seasonal subseries plots can be particularly helpful!
+
+# YOUR TURN!
+Using the tourism dataset, create a seasonal subseries plot for the total business travel to Victoria over time. Does the seasonal pattern change over time?
+Some starter code has been provided for you in the day 1 exercises.
+```{r}
+holidays |> 
+  filter(State == "New South Wales") |> 
+  gg_subseries(Trips)
+```
+
+### ACF plots
+These plots may look a bit strange at first, but they are very useful for seeing all of the time series dynamics in a single plot. ACF is the ‘auto-correlation function’, essentially a measure of how similar a time series is to the lags of itself. Looking at these correlations can reveal trends, seasonality, cycles, and more subtle patterns. You can create an ACF plot using a combination of ACF() and autoplot().
+### View the Data
+```{r}
+guinea_rice
+```
+
+### Plot the Data
+```{r}
+guinea_rice|>
+  autoplot(Production)
+```
+
+### Plot the ACF
+```{r}
+guinea_rice |> 
+  ACF(Production) |> 
+  autoplot()
+```
+
+The rice production of Guinea has an upward trend, which produces a gradual decay in the ACF.
+
+### Australian Beer Production
+```{r}
+aus_beer
+```
+
+```{r}
+aus_beer|>
+  autoplot(Beer)
+```
+
+```{r}
+aus_beer|> 
+  ACF(Beer)|> 
+  autoplot()
+```
+
+The recent beer production of Australia has lots of seasonality and no trend, which creates large peaks at the seasonal lags in the ACF. Every 4 quarters we see a large ACF spike.
+
+```{r}
+aus_accommodation |> 
+  summarise(Occupancy = sum(Occupancy))|>
+  autoplot(Occupancy)
+```
+
+
+```{r}
+aus_accommodation |> 
+  summarise(Occupancy = sum(Occupancy)) |> 
+  ACF(Occupancy) |> 
+  autoplot()
+```
+
+The total occupancy of Australia’s short-term accommodation is both trended and seasonal, which results in a slowly decaying ACF with peaks every seasonal lag (4, 8, 12, …) Consider the number of Snowshoe Hares which were traded by the Hudson Bay Company.
+
+
+```{r}
+tsibbledata::pelt |> 
+  autoplot(Hare)
+```
+
+To the untrained eye, this series has lots of up and down patterns - a bit like seasonality. However this pattern is cyclical, not seasonal. The ACF plot can help us distinguish cycles from seasonality.
+
+### Seasonal or cyclic?
+Seasonality is a consistent repeating pattern, where the shape shape with similar peak and trough repeats at the same time interval. Cyclical patterns are less consistent, with varying peaks and troughs that repeats over a varied time period.
+
+Let’s see the ACF for this dataset
+```{r}
+tsibbledata::pelt |> 
+  ACF(Hare) |> 
+  autoplot()
+```
+
+Notice that the peak at lag 10 is less symmetric and ‘sharp’, this is because the pattern usually repeats every 10 years but sometimes 9 or 11. This is unlike seasonality, which has a sharper peak in the ACF due to the consistent time period between patterns.
+
+# YOUR TURN
+Using the tourism dataset, create an ACF plot for the total travel to Australia over time. Can you identify patterns of trend and seasonality from this plot?
+Some starter code has been provided for you in the day 1 exercises.
+```{r}
+holidays
+```
+
+```{r}
+holidays|>
+  filter(State == "New South Wales")|>
+  autoplot(Trips)
+```
+
+```{r}
+holidays|>
+  filter(State == "New South Wales")|>
+  ACF(Trips)|>
+  autoplot()
+```
+
+### ACF model evaluation
+Importantly, ACF plots can also tell us when there are no patterns/autocorrelations in the data (white noise). We’ll be revisiting this plot to evaluate our models on day 5. We hope that a model uses all available information, and ACF plots can show if there is any patterns left over.
+
+## Apply
+### About the dataset
+In this exercise, we use a dataset containing dose of BCG (Cacille Calmette-Guérin), vaccine administrated in 9 regions of an African country from January 2013 until December 2021. BCG is a widely administered vaccine primarily used to protect against tuberculosis (TB), a serious infection that primarily affects the lungs but can also affect other parts of the body. BCG vaccination is recommended for newborn babies at risk of tuberculosis (TB) and is typically administered shortly after birth, usually within the first 28 days of life.
+
+In addition to the administered dose, it also includes data on the population of children under one year old, and whether a strike occurred in a specific month and region. In this exercise, you will apply what you have learned about different steps in the forecasting workflow on this dataset.
+
+### Import vaccine_adminstrated.csv data into R
+
+Let's first import data and observe it. This dataset is located indata directory in the working directory:
+
+```{r}
+library(tidyverse)
+library(tsibble)
+library(lubridate)
+vaccine_administrated <- read_csv("vaccine_adminstrated.csv")
+vaccine_administrated
+```
+
+After importing your data, it's important to double-check the structure of the data and the data types of the variables. The structure of the data you import into R must be a tibble/data frame.
+
+Verify the data type of each variable in vaccine_administered. We may need to modify the data type of month, and strike. Could you explain why?
+
+```{r}
+vaccine_administrated <- vaccine_administrated |> 
+  mutate(month = yearmonth(month), strike = as_factor(strike))
+vaccine_administrated
+```
+
+###Prepare your data
+Preparing your temporal data for time series analysis and forecasting may involve several steps, such as addressing data quality issues, handling missing values, fixing duplications, creating a tsibble, and checking/filling temporal gaps.
+
+### Check missing values and fix them
+
+It's essential to always check for any missing values and address them before creating a tsibble. The easiest way to know if there is a missing values is to use anyNA().
+
+```{r}
+anyNA(vaccine_administrated)
+```
+
+The dataset you use may contain missing values (NA in R) and other data quality issues. While checking and fixing data quality issues are crucial for any project, addressing such issues goes beyond the scope of this training. For further information, you may read more about data quality issues here
+
+### Check duplications and fix it
+
+Before you move forward, it's important to consistently examine your data for any duplicated observations. If such duplications are identified, address them before moving forward.
+
+Write R code to check for duplicate observations in the data.
+
+```{r}
+library(janitor)
+get_dupes(vaccine_administrated)
+```
+
+Have you identified any duplicate observations? If your data contains no duplicates, you may proceed with creating a tsibble. Otherwise, you need to fix it.
+
+How do you fix duplicated observations?
+
+### Create tsibble
+
+You can store your data in a tsibble format, which is suitable for time series analysis and forecasting. Most functions that you use for time series analysis and forecasting, requires your data to be in a tsibble format.
+
+Complete the following R chunk to create a tsibble.
+
+```{r}
+vaccine_administrated_tsb <- vaccine_administrated |> 
+  mutate(month, yearmonth(month))|>
+  as_tsibble(index = month, key = region)
+vaccine_administrated_tsb
+```
+
+### Check for temporal gaps in time and fill gaps
+
+After creating a tsibble, it's important to check for any temporal gaps. If gaps are found, you could scan and count them. In this case, it's crucial to fill them before proceeding. However, if you're fortunate enough not to have any temporal gaps, no action is needed.
+
+Complete the following R chunk to check if there is any temporal gap in the data:
+
+```{r}
+##???(vaccine_administrated_tsb)#check gaps
+##???(vaccine_administrated_tsb)# show me gaps
+##???(vaccine_administrated_tsb)# count gaps
+```
+
+### Are there any temporal gaps in the data?
+
+At times, you may come across a dataset with temporal gaps, signifying intervals where no records exist in the temporal data. Prior to do any analysis, it's important to identify and fill those gaps. You can use the below R code if such temporal gaps are present in the dataset.
+
+```{r}
+#If there is any gap, then fill it using fill_gaps.
+#vaccine_administrated_tsb <- vaccine_administrated_tsb |> fill_gaps(???)
+```
+
+### Manipulating time series
+
+Depending on the decision your forecast will inform, you may need to manipulate your tsibble. For instance, if you're forecasting the total dose administered in the country, or if you need to forecast quarterly doses administered for each region or for the entire country, you need to manipulate your time series frist.
+
+### Remember, you can use index_by(), group_by() or group_by_key(), and summarise() to create different temporal granularity.
+
+Complete the following code to create total dose administrated in the country.
+
+```{r}
+vaccine_administrated_total <- vaccine_administrated_tsb |> 
+  group_by(region) |>
+  summarise(dose_adminstrated = sum(dose_adminstrated))
+vaccine_administrated_total
+```
+
+Depending on the forecasting task on hand, you may need to work with other time granularities such as quarterly time series.
+
+Complete the following code to create total dose administrated in the country.
+
+```{r}
+#| label: quarterly
+library(lubridate)
+vaccine_administrated_tsb |> 
+  index_by(Quarter = yearquarter(month)) |> 
+  summarise(dose_adminstrated = sum(dose_adminstrated))
+```
+What if you need to create quarterly dose administrated in each region, write the R to achieve that.
+
+```{r}
+vaccine_administrated_tsb |> 
+  as_tibble() |> 
+  group_by(region) |> 
+  summarise(dose_adminstrated = sum(dose_adminstrated)) |> 
+  arrange(desc(dose_adminstrated))
+```
+
+### Visualising time series
+
+#### Time plots
+
+To understand your data, you can start by producing time plot of dose administrated in 9 regions.
+
+```{r  fig.width=9}
+vaccine_administrated_tsb |> 
+  autoplot(dose_adminstrated)
+````
+
+## You can also focus on any region by filtering the region:
+
+```{r}
+vaccine_administrated_tsb |> 
+  filter(region == "A") |> 
+  autoplot(dose_adminstrated)
+```
+
+Do you observe any systematic pattern in time series plots?
+
+### Seasonal plots
+
+In time series analysis, we are looking for consistent pattern. Complete the following code to create seasonal plot to see if there is any obvious monthly consistent pattern.
+
+```{r}
+vaccine_administrated_tsb |> 
+  gg_season(dose_adminstrated)
+```
+
+It might not be easy to see the systematic pattern when you plot many time series together,instead you can first filter the time series of interest and then plot it:
+
+```{r}
+vaccine_administrated_tsb |> 
+  filter(region == "A") |> 
+  gg_season(dose_adminstrated)
+```
+Do you observe any consistent pattern? How different the pattern is across region?
+
+Seasonal subseries plot
+
+You might be also interested in observing how doses administrated within each month/quarter change over time, as well as understanding the dose administrated changes across different season. This could be plotted for each region separately . Complete the following code to create the plot for your region of interest:
+
+```{r}
+vaccine_administrated_tsb |> 
+  filter(region == "A") |> 
+  gg_subseries(dose_adminstrated)
+```
+
+Do you see any pattern that has not been obvious with time plot and seasonal plot?
+
+ACF plots
+
+In forecasting, we would be interested in understanding how similar a time series is to the lags of itself. We often measure this similarity by calculating the correlation (i.e. the linear association) between a time series and its lags and then plot it.
+
+```{r}
+vaccine_administrated_tsb |> 
+  ACF(dose_adminstrated, lag_max = 12) |> 
+  autoplot()
+```
+You can also focus on any time series of interest by filtering the region:
+
+```{r}
+vaccine_administrated_tsb |> 
+  filter(region == "G") |> 
+  ACF(dose_adminstrated, lag_max = 12) |> 
+  autoplot()
+```
+What can you say about the correlation between dose administrated with its lags?
+
+### Confirm if the Questions Below are Answered
+1. Import vaccine_adminstrated.csv data into R
+
+Check and modify the data types of variables as needed
+Prepare your data
+
+2. Check and fix missing values
+Check duplications and fix it
+Create tsibble
+Check and fix temporal gaps
+
+3. Manipulating time series
+Create monthly time series of total doses adminstrated in the country
+Create quarterly time series of doses adminstrated in each region
+Create quarterly time series of total doses adminstrated in the country
+Visualizing time series
+
+4. Use time plots and describe what patterns you observe
+Create plots to see if any consistent pattern exsists in monthly and quarterly of dose admisntrated
+Create plots to see how dose admisntrated chnage over time for each month/quarter and how it differs across differnt month/quarter
+
+
+# DAY TWO
+## LECTURES
+
+
+
+## EXERCISE AND PRACTISE
+Learn
+Transformations
+Transformations provide useful simplifications of the patterns in a time series. Simplifying the patterns makes them easier to model, and so transforming the data is a common preliminary step in producing forecasts. Some transformations standardise values to be comparable between countries or other series in the dataset, while others can regularise the variation in the data.
+
+Let’s look at the turnover of print media in Australia.
+```{r fig.width= 8, fig.height=7}
+library(tsibbledata)
+library(fable)
+library(dplyr)
+aus_print <- aus_retail |> 
+  filter(Industry == "Newspaper and book retailing") |> 
+  summarise(Turnover = sum(Turnover))
+aus_print |> 
+  autoplot(Turnover)
+```
+
+Turnover has increased until the end of 2010, after which it has steadily declined. When looking at monetary value it is common to consider price indices to ensure that turnover is comparable over time. This allows you to identify patterns and changes such as turning points in real monetary terms.
+
+### Data for transformations
+It can be useful to use other datasets that contain information for the transformation. To do this we can merge the datasets in time using join operations.
+
+
+```{r}
+library(lubridate)
+aus_economy <- global_economy |> 
+  filter(Country == "Australia")
+aus_economy
+```
+
+```{r}
+aus_print |> 
+  mutate(Year = year(Month)) |> 
+  left_join(aus_economy, by = "Year")
+```
+
+```{r}
+aus_print |> 
+  mutate(Year = year(Month)) |> 
+  left_join(aus_economy, by = "Year") |> 
+  autoplot(Turnover/CPI)
+```
+
+### Warning: Removed 12 rows containing missing values (`geom_line()`).
+
+After taking into account CPI, the real monetary Turnover of the print media industry in Australia has been gradually declining since 1990-2000.
+
+# Your turn!
+Select a country of your choice from global_economy, then calculate and visualise the the GDP per capita over time (that is, the GDP scaled by the population).
+```{r}
+global_economy
+```
+
+```{r}
+ke_economy <- global_economy %>% 
+  filter(Country == "Kenya")
+ke_economy
+```
+
+```{r}
+ke_economy |> 
+  autoplot(GDP/Population)
+```
+
+## Tricky to forecast
+While transformations help to make the patterns simpler to forecast, if additional information like CPI or Population are used then they will also need to be forecasted. While population is generally easy to forecast, CPI could be more complicated to forecast than the thing you’re originally forecasting!
+
+Another useful transformation is calendar adjustments. This adjusts the observations in the time series to represent an equivalent time period, and can simplify seasonal patterns which result from these different lengths. This is particularly useful for monthly data, since the number of days in each month varies substantially.
+
+```{r}
+library(feasts)
+aus_print |> 
+  autoplot(Turnover / days_in_month(Month))
+```
+
+```{r}
+aus_print |> 
+  gg_subseries(Turnover / days_in_month(Month))
+```
+
+
+### Your turn!
+Calculate the monthly total Australian retail turnover from aus_retail and visualise the seasonal pattern. Then scale by the number of days in each month to calculate the daily average turnover and compares the seasonal patterns.
+```{r}
+aus_print |> 
+  gg_season(Turnover / days_in_month(Month))
+```
+
+
+
+
+
+
+
+
+
+
+
+Mathematical transformations are useful since they don’t require providing any future values to produce the forecasts. Log and power transformations (, for example square root, square, and inverse) are particularly helpful for regularising variation proportional to the level of the series.
+
+```{r}
+aus_retail |> 
+  filter(State == "Victoria", Industry == "Cafes, restaurants and catering services") |> 
+  autoplot(Turnover)
+```
+
+This proportional variance is common in time series, in Victoria’s cafe and restaurant turnover you can see small changes when turnover is low (before 2000), and is much larger after 2010 when turnover is much larger.
+```{r}
+aus_retail |> 
+  filter(State == "Victoria", Industry == "Cafes, restaurants and catering services") |> 
+  autoplot(log(Turnover))
+```
+
+Log transforming the data changes this variation to be more consistent, where the variation before 2000 is now more similar to after 2010. The log transformation above was a bit strong, so let’s try something slightly close to lambda =1, let us try lambda = 0.089
+```{r}
+aus_retail |> 
+  filter(State == "Victoria", Industry == "Cafes, restaurants and catering services") |> 
+  autoplot(box_cox(Turnover, lambda = 0.089))
+```
+
+The variation is now consistent for the entire series, and the trend is linear.
+
+Automatic box-cox transformations
+The lambda parameter can be automatically computed using the guerrero() function. We can calculate the optimal box-cox parameter using features() and guerrero():
+
+```{r}
+aus_retail |> 
+  filter(State == "Victoria", Industry == "Cafes, restaurants and catering services") |> 
+  features(Turnover, features = guerrero)
+```
+
+Looks like we were pretty close with lambda = 0.1, let’s try using this more precise estimate:
+```{r}
+aus_retail |> 
+  filter(State == "Victoria", Industry == "Cafes, restaurants and catering services") |> 
+  autoplot(box_cox(Turnover, lambda = guerrero(Turnover)))
+```
+
+The optimized box-cox transformation is very similar to lambda = 0.1. Fortunately for us we don’t have to be precise since this transformation isn’t sensitive to your choice of parameter. So long as you are within lambda +/- 0.1, the transformation should be okay. Additionally, if lambda = 0, then it is common to instead use the simpler log() transformation.
+
+# Your turn!
+Find a suitable box-cox transformation for the monthly total Australian retail turnover, then compare your choice with the automatically selected parameter from the guerrero() feature.
+
+## Decomposition
+Another commonly used transformation/adjustment requires a model to decompose the time series into its components. Seasonally adjusted time series are often used by analysts and policy makers to evaluate the underlying long term trends without the added complexity of seasonality. The STL decomposition is useful model which can isolate the seasonal pattern from the trend and remainder for many types of time series.
+
+The STL decomposition separates time series into the form Y = Seasonal + Trend + Remainder. Since this is an additive decomposition, we must first simplify any multiplicative patterns into additive ones using a suitable power transformation. Let’s try to remove the annual seasonality from Australia’s print media turnover.
+
+```{r}
+aus_print |> 
+  autoplot(Turnover)
+```
+
+The log transformation (lambda = 0) does a great job at producing a consistent variation throughout the series. You could try to find a better transformation using the box-cox transformation family, however there is no need for it here.
+
+We can estimate the STL model using STL() as follows:
+```{r}
+fit <- aus_print |> 
+  model(STL(log(Turnover)))
+fit
+```
+
+The decomposition can be obtained from the model using components(), and then all of the components can be plotted with autoplot():
+```{r}
+fit |> 
+  components() 
+```
+
+```{r fig.width=7, fig.height=7}
+fit |> 
+  components() |> 
+  autoplot()
+```
+
+The components are obtained using rolling estimation windows, which are the main way the decomposition is changed. A large window produces smooth components, and a small window produces flexible and quickly changing components.
+```{r}
+aus_print |> 
+  model(STL(log(Turnover) ~ trend(window = 12) + season(window = Inf))) |> 
+  components() |> 
+  autoplot()
+```
+
+The infinite window for the seasonality results in a seasonal pattern that doesn’t change over time, while the small trend window allows the trend to change very quickly. The best choice of estimation window should produce components that match the patterns in the original data while being as smooth as possible.
+
+
+```{r}
+fit <- aus_print |> 
+  model(STL(log(Turnover) ~ trend(window = 25) + season(window = Inf))) 
+fit |> 
+  components() |> 
+  autoplot()
+```
+
+A trend window of 25 for this dataset produces a mostly smooth trend component which can still react to brief decreases in turnover. The constant seasonal pattern (infinite window) is reasonable for this dataset since the seasonality doesn’t change much over time.
+
+## Seasonal adjustment
+You can find the de-seasonalised data in the season_adjust column of the components() output.
+```{r}
+fit |> 
+  components() |> 
+  autoplot(season_adjust)
+```
+
+# Your turn!
+Find a suitable STL decomposition for the total Australian retail turnover, then produce and visualise the seasonally adjusted time series. Hint: don’t forget to use the suitable transformation found previously!
+```{r}
+aus_production
+```
+
+```{r}
+fit1 <- aus_production |> 
+  model(STL(log(Electricity)))
+fit1
+```
+
+```{r}
+aus_production |> 
+  model(STL(log(Electricity) ~ trend(window = 12) + season(window = 4))) |> 
+  components() |> 
+  autoplot()
+```
+
+```{r}
+fit1|>
+  components()|>
+  autoplot()
+```
+
+## Why I cannot Create the Plot above with this data
+```{r}
+us_change
+```
+
+Seasonal decomposition also makes it easier to take a look at the seasonality - we can use a combination of seasonal plots and decomposition to more easily see seasonal patterns.
+
+```{r}
+fit |> 
+  components() |> 
+  gg_season(season_year)
+```
+
+If the seasonal window allows the seasonal component to change over time, the gg_subseries() plot is especially useful for seeing how the pattern changes.
+
+```{r}
+aus_print |> 
+  model(STL(log(Turnover) ~ trend(window = 25) + season(window = 9))) |> 
+  components() |> 
+  gg_subseries(season_year)
+```
+
+January and December seem to increase over time, while April, May and June are decreasing.
+
+## Your turn!
+
+Produce appropriate seasonal plots of the seasonal component from your STL decomposition on Australian retail turnover.
+```{r}
+fit1 |> 
+  components() |> 
+  gg_season(season_year)
+```
+
+```{r}
+aus_production |> 
+  model(STL(log(Electricity) ~ trend(window = 12) + season(window = 4))) |> 
+  components() |> 
+  gg_subseries(season_year)
+```
+
+### Features
+A useful technique for visualizing large collections of time series is to produce summaries of their patterns known as features. Visualizing many time series simultaneously is difficult since the scale and shape of patterns can vary substantially. The features() function will compute single value summaries over time such as the strength of trend or seasonality. There are many features available, but the features from STL decomposition are particularly interesting.
+
+```{r}
+aus_retail |> 
+  features(Turnover, feat_stl)
+```
+
+In particular, features from STL decompositions allow you to compare the strength of trend and seasonality between many time series.
+```{r}
+library(ggplot2)
+aus_retail |> 
+  features(Turnover, feat_stl) |> 
+  ggplot(aes(x = trend_strength, y = seasonal_strength_year)) + 
+  geom_point()
+```
+
+From this we can see that almost all time series have a strong trend, while the strength of seasonality is more varied - some series have strong seasonality while others have less seasonality.
+
+## Your turn!
+Calculate the STL features for the time series in the tourism dataset. Try colouring the points in the scatterplot by the purpose of travel, are some reasons more trended or seasonal than others?
+
+```{r}
+tourism
+```
+
+```{r}
+tourism |> 
+  features(Trips, feat_stl) |> 
+  ggplot(aes(x = trend_strength, y = seasonal_strength_year)) + 
+  geom_point()
+```
+
+```{r}
+tourism |>
+features(Trips, feat_stl) |>
+  ggplot(aes(x = trend_strength, y = seasonal_strength_year, col = Purpose)) +
+  geom_point() + facet_wrap(vars(State))
+```
+
+There are many other features that you can use - check out the documentation for ?features_by_pkg. You can produce a feature set of similar features using the feature_set() function.
+
+```{r}
+aus_retail |> 
+  features(Turnover, feature_set(tags = "autocorrelation"))
+```
+
+# Apply
+## Your turn!
+
+### Decomposition
+1. Do an STL decomposition of dose_adminstrated for a region of your choice. You will need to choose a trend and seasonal window to allow for the changing shape of these components. How do values of parameters in trend and season changes the decomposition?
+2. Plot the components from the STL decomposition.
+3. Could you describe the result of the decomposition.
+4. Could you produce a seasonally adjusted series and plot them with the dose demonstrated and the trend?
+
+### Computing features
+1. Computer average, standard deviation and coefficient of variation (cv) for the monthly time series
+2. Compute all features for 9 monthly time series corresponding to vaccine doses administrated in 9 regions
+3. Examine the following features and provide an interpretation based on their values: 
+* spectral entropy 
+* trend
+* seasonality
+* acf1
+* season_acf1
+
+### Visualizing features
+1. Create a scatter plot that shows the strength of trend versus strength of seasonality. What information does this plot convey?
+2. Which feature indicates how difficult/easy a time series is to forecast? Use that feature to create a distribution of forecastability of time series usign a boxplot or density plot. How such distribution could be informative?
+
+
+# DAY THREE
+## LECTURE 
+
+
+
+
+## EXERCISE
+### Learn
+Forecasting involves modelling the historical patterns in the data and then projecting them into the future. Some models use time information alone, while others use additional information. Importantly, forecasting models assume the patterns in the past will continue into the future.
+
+## Basic forecasting models
+### Tip
+There are four basic forecasting models which are commonly used as ‘benchmarks’ for other more sophisticated methods. These are:
+
+* MEAN() - the average of the data (mean)
+* NAIVE() - the most recent value (naive)
+* SNAIVE() - the most recent value from the same season (seasonal naive)
+* RW(y ~ drift()) - a straight between the first and last values (random walk with drift)
+
+Despite their simplicity, these models work well for many time series and can be difficult to improve upon!
+
+### Fit for purpose
+Each of these methods work for a specific pattern that might exist in the data, for example.
+
+* MEAN() - no pattern
+* NAIVE() - unit root process
+* SNAIVE() - seasonality
+* RW(y ~ drift()) - simple trend
+
+The models used for forecasting should match the patterns identified when plotting the time series.
+
+Let’s look at the population of the United Kingdon
+```{r}
+library(tsibble)
+library(tsibbledata)
+library(tidyverse)
+library(fable)
+library(fpp3)
+ke_economy <- global_economy |> 
+  filter(Country == "Kenya")
+ke_economy |> 
+  autoplot(Population)
+```
+
+This time series shows an upward trend and no seasonality, so the random walk with drift is the most appropriate method from the four simple benchmark models above. Similar to how we estimated an STL model, we use model() to train a model specification (RW(Population ~ drift())) to the data.
+```{r}
+fit <- global_economy |> 
+  filter(Country == "Kenya") |> 
+  model(RW(Population ~ drift()))
+fit
+```
+
+## The model formula
+* Models in {fable} are specified using a model formula (lhs ~ rhs).
+* On the left of ~ we specify the response variable (what we want to forecast) along with any transformations we’ve made to simplify the patterns.
+* On the right of ~ we specify the model specials, which describe the patterns in the data we will use when forecasting. This is model specific, so check the help file of the model with ?RW for more information!
+
+To produce a forecast from this model we use the forecast() function, and specify how far ahead we wish to forecast with the h (horizon) argument. The h argument can be a number for how many steps to forecast, or plain text describing the duration.
+
+```{r}
+fc <- fit |> 
+  forecast(h = "10 years")
+fc
+```
+
+Here we have a fable - a forecasting table. It looks like a tsibble, but the response variable Population contains entire distributions of possible future values at each step in the future. We can look at these forecasts using the autoplot() function.
+```{r}
+fc |> 
+  autoplot()
+```
+  
+### Context is key
+When plotting the forecasts it is useful to also show some historical data. This helps us see if the forecasts seem reasonable. To add historical data, add the original dataset to the first argument of the autoplot() function.
+```{r}
+fc |> 
+  autoplot(ke_economy)
+```
+  
+Not bad. These forecasts are trended upward but likely a bit flat. Verify that this forecast simply continues the line that connects the first and last observations. This trend is known as a global trend (or ‘drift’ for this model), but we can see the trend changes over time for this data. Later we’ll see more advanced models which can handle changing (local) trends.
+
+### Your turn!
+Choose a country from the global_economy dataset and select the most suitable benchmark method. Produce forecasts of population for 15 years into the future, and comment on the suitability of these forecasts based on a plot of them and the data.
+```{r}
+ca_economy <- global_economy |> 
+  filter(Country == "Canada")
+ca_economy |> 
+  autoplot(Population)
+```
+
+```{r}
+fit <- global_economy |> 
+  filter(Country == "Canada") |> 
+  model(RW(Population ~ drift()))
+fit
+```
+
+```{r}
+fc <- fit |> 
+  forecast(h = "10 years")
+fc
+```
+
+```{r}
+fc |> 
+  autoplot()
+```
+
+```{r}
+fc |> 
+  autoplot(ca_economy)
+```
+
+Next let’s forecast the household wealth of the four countries in the hh_budget dataset.
+```{r}
+hh_budget
+```
+
+```{r}
+hh_budget|>
+  distinct(Country)
+```
+
+```{r}
+hh_budget |> 
+  autoplot(Unemployment)
+```
+
+These time series all show some trend that changes over time. There isn’t any seasonality here, so the random walk with drift model would also work well here. The model() function will apply the specified model to all time series in the data, so the code looks very similar to above.
+
+```{r}
+fit <- hh_budget |> 
+  model(RW(Wealth ~ drift()))
+fit
+```
+
+Here we have four random walk with drift models that have been trained on the household wealth from each of the four countries in the dataset. We can forecast from all four models using the forecast() function, and then plot them with autoplot().
+
+```{r}
+fit |> 
+  forecast(h = "10 years")
+```
+
+
+```{r}
+fit |> 
+  forecast(h = "10 years") |> 
+  autoplot(hh_budget)
+```
+
+## Your turn!
+Comment on the suitability of these forecasts.
+
+Let’s try to forecast the future turnover of Australia’s print media industry. Recall this plot from the previous exercises.
+```{r}
+aus_print <- aus_retail |> 
+  filter(Industry == "Newspaper and book retailing") |> 
+  summarise(Turnover = sum(Turnover))
+aus_print |> 
+  autoplot(Turnover)
+```
+
+### Most appropriate model
+Which model would be most appropriate for this dataset? In this case none of the methods can capture all of the patterns here. This dataset has a strong seasonal pattern, which a trend that changes over time. The random walk with drift can handle trends, but in this case the changing trend does not match the global trend that this model will use. The seasonal naive model can handle the seasonality, but it is unable to handle the trend too. None of the four basic models can capture all of the patterns in this dataset, but the seasonal naive model is most appropriate since it can handle some of the patterns in the data.
+
+```{r}
+fit <- aus_print |> 
+  model(SNAIVE(Turnover))
+fit |> 
+  forecast(h = "5 years") |> 
+  autoplot(aus_print)
+```
+
+As expected, the forecasts have the same seasonal pattern as the recent data but don’t have any trend. We’ll need more advanced models to capture both.
+
+### Multiple models
+We can compare the forecasts from multiple models by specifying several models in the model() function.
+```{r}
+fit <- aus_print |> 
+  model(
+    snaive = SNAIVE(Turnover),
+    rwdrift = RW(Turnover ~ drift())
+  )
+fit
+```
+
+Here we have a column for each of the models that we have specified. Forecasts from both of these models can be created using forecast(), and compared visually with autoplot().
+```{r}
+fit |> 
+  forecast(h = "5 years") |> 
+  autoplot(aus_print)
+```
+
+The seasonal naive method looks much better than the random walk with drift. The forecast intervals of the drift method are very wide, and the forecasts are trended slightly upward despite the recent turnover trending downward.
+
+## Your turn!
+Produce forecasts from two suitable models for the total Australian retail turnover, and select the most appropriate one based on visual inspection of the forecast plot.
+
+```{r}
+fit <- aus_print |> 
+  summarise(Turnover = sum(Turnover))|>
+  model(SNAIVE(Turnover))
+fit |> 
+  forecast(h = "5 years") |> 
+  autoplot(aus_print)
+```
+
+
+## Regression forecasting
+Linear regression can also be used to forecast time series, and by carefully constructing predictors we can use it to capture trends, seasonality, and relationships with other variables all at once. A regression model is estimated using TSLM(), and there are some useful model specials which help create predictors for trend and seasonality.
+
+### Regression specials
+A linear trend can be created with the trend() special. You can also specify changepoints in the trend by describing the ‘knot’ location(s) with trend(knots = yearmonth("2010 Jan")), which will create different trends before and after these knot(s). Seasonal patterns can be modelled with the season() special, which will create dummy variables for each time point in the season. Don’t forget to transform your data first, since the season() special assumes all seasons have the same size and shape.
+
+Let’s try to create a regression model for the Australian print media turnover. I’ve used a log() transformation to regularise the variance, but a box-cox transformation would work even better.
+```{r}
+aus_print |> 
+  model(
+    TSLM(log(Turnover) ~ trend() + season())
+  ) |> 
+  forecast(h = "5 years") |> 
+  autoplot(aus_print)
+```
+
+## Model misspecification
+Those forecasts look bad! The seasonality matches the right shape, but the trend is completely wrong and the forecasts are very far from the most recent data. We need to improve our trend parameter with some knots.
+
+```{r}
+aus_print |> 
+  model(
+    TSLM(log(Turnover) ~ trend(knots = yearmonth("2011 Jan")) + season())) |> 
+  forecast(h = "5 years") |> 
+  autoplot(aus_print)
+```
+
+Much better! Adding a knot just as the trend changes in 2011 allows the forecasts to follow the more recent trend.
+
+## Your turn!
+Produce suitable forecasts from a regression model for the total Australian retail turnover that captures both the trend and seasonality in the data. Compare these forecasts with the two basic models produced earlier, which model produces the most reasonable forecasts and why?
+
+The coefficients from this model can be obtained with the tidy() function, glance() provides a summary of the model and augment() returns a tsibble of the model’s predictions and errors on the training data. These functions are useful for better understanding the model that was used to produce the forecasts.
+
+
+```{r}
+fit <- aus_print |> 
+  model(
+    lm = TSLM(log(Turnover) ~ trend(knots = yearmonth("2011 Jan")) + season())
+  )
+fit |> 
+  tidy()
+```
+
+The initial trend is upward (+0.002477/month), but after 2011 the trend decreases (0.002477-0.008432=-0.005955/month). The seasonality peaks in December, which is +0.27426 more than January.
+
+```{r}
+fit |> 
+  glance()
+```
+
+The r-squared of this model is high, at 0.91.
+```{r}
+fit |> 
+  augment() |> 
+  ggplot(aes(x = Month)) + 
+  geom_line(aes(y = Turnover)) + 
+  geom_line(aes(y = .fitted), colour = "steelblue", alpha = 0.8)
+```
+
+The model matches the historical data quite well, but the small changes in trend before 2010 can be improved upon. Regression models can also use additional information from other variables in the data. Let’s consider the household budget again.
+
+```{r}
+hh_budget
+```
+
+Here we have lots of information about the households in these countries, including their debt, disposable income, savings, and more. We can use this information when modelling household wealth.
+
+```{r}
+hh_budget |> 
+  model(
+    TSLM(Wealth ~ trend() + Expenditure),
+    RW(Wealth ~ drift())
+  ) |> 
+  augment() |> 
+  ggplot(aes(x = Year)) + 
+  geom_line(aes(y = Wealth), data = hh_budget) + 
+  geom_line(aes(y = .fitted, colour = .model)) + 
+  facet_grid(vars(Country))
+```
+
+This seems to produce a better model than the random walk with drift, as it can better anticipate the drops in wealth before they happen. However there’s a catch, when we come to forecasting we need to know the future.
+```{r}
+hh_budget |> 
+  model(
+    TSLM(Wealth ~ trend() + Expenditure)
+  ) |> 
+  forecast(h = "5 years")
+```
+
+### Extra information
+object 'Expenditure' not found, …, Does your model require extra variables to produce forecasts? To produce forecasts from models that use extra information for transforming or modelling the data, you will need to provide the future values of these variables when forecasting! Often these are just as difficult to forecast as your response variable! However if you cannot forecast these variables, the model can still be useful for scenario analysis.
+
+The future values of extra variables used in the model must be provided to the forecast(new_data = ???) argument. The new_data argument is for a tsibble containing the future points in time, and values of other variables, needed to produce the forecasts. We can produce a tsibble with the future time points easily using the new_data() function.
+
+```{r}
+new_data(hh_budget, 5)
+```
+
+Adding the future values for Expenditure is tricky though - we can forecast it or set up scenarios. For simplicity we’ll just see what happens if the expenditure has a growth rate of 3% for all countries over the 5 years.
+```{r}
+future_hh_budget <- new_data(hh_budget, 5) |> 
+  mutate(Expenditure = 3)
+future_hh_budget
+```
+
+```{r}
+hh_budget |> 
+  model(
+    TSLM(Wealth ~ trend() + Expenditure)
+  ) |> 
+  forecast(new_data = future_hh_budget) |> 
+  autoplot(hh_budget)
+```
+
+A better estimate of Expenditure will produce better forecasts.
+
+## Apply
+In this exercise, we first use simple models to produce forecasts of future administered vaccine doses for the next 12 months. Following that, we use regression models to produce such a forecast.
+
+Basic of modelling/forecating
+Specify and train three simple models including total average, naive and seasonal naive on administered vaccine doses.
+
+Examine the model table (mable) object and describe what each column and row represent.
+
+Use report(), tidy(), glance() and augment() to explore the trained model’s output.
+
+Produce forecasts for 12 months ahead including both point forecast and forecast distribution.
+
+Examine the forecast table (fable) object and explain what each column and row represent.
+
+Visualize the point forecasts alongside past values, as well as prediction interval for 
+ coverage.
+
+Extract prediction intervals for 
+ coverage.
+
+Produce probabilistic forecast using bootstrapping instead of assuming normal distribution. Generate 1000 possible future.
+
+Forecating using regression
+Examine the association between dose_adminstrated and predictors
+
+Assess the association between dose_adminstrated and population_under1
+Assess the association between dose_adminstrated and strike
+Examine the association between leading predictors of population_under1 and dose_adminstrated
+Specify and train the four different regression models with the following terms:
+
+trensd and seasonality
+trensd, seasonality, and population_under1
+trensd, seasonality, population_under1, and strike
+Examine trained model output using report(), tidy(), and glance() and augment()
+
+Produce forecast
+
+Use new_data() to generate future months corresponding to forecast horizon
+Add future values for the strike
+Add future values for the population_under1
+Generate forecasts for future periods
+Visualize forecasts
+
+
+## DAY FOUR 
+### LECTURE
+
+
+
+### EXERCISE
+```{r}
+library(tsibble)
+library(tsibbledata)
+library(tidyverse)
+library(fable)
+```
+
+# Learn
+Exponential smoothing and ARIMA models allow more dynamic patterns to be modeled for forecasting. This allows the model to learn and adapt to changes in the trend, seasonality, and other subtle patterns to produce forecasts that accurately reflect the most recent data.
+
+## Expontential smoothing
+Exponential smoothing models can handle both additive and multiplicative patterns, and models the series based on three primary components: the error, trend, and seasonality (ETS). Since multiplicative patterns can be directly modeled with ETS, there is no need to transform the data.
+
+## ETS models are specified using the ETS() function.
+
+### ETS specials
+The specials for the ETS model describe the structure of the three components.
+* error(): The structure of the error, either additive ("A") or multiplicative ("M")
+* trend(): The structure of the error, either none ("N"), additive ("A") or multiplicative ("M"). Adding "d" afterwards ("Ad" or "Md") will dampen the trend, flattening it out into the future.
+* season(): The structure of the seasonality, either none ("N"), additive ("A") or multiplicative ("M").
+More information is available in the ?ETS help file.
+```{r}
+?ETS
+```
+
+Additive components have a constant variation with the level of the series, while multiplicative components have a proportional variation to the level of the series. For trend, an additive trend is mostly straight (linear) while a multiplicative trend curves up or down (exponential).
+
+```{r}
+global_economy |> 
+  filter(Country == "Australia") |> 
+  autoplot(vars(Population, GDP))
+```
+
+Australia’s population has a linear (additive) trend, while the GDP has an exponential (multiplicative) trend. You can also notice that the error (randomness) is additive for population, but multiplicative for GDP since the series is more variable at larger GDP timepoints.
+
+```{r}
+aus_retail |> 
+  summarise(Turnover = sum(Turnover)) |> 
+  autoplot(Turnover)
+tourism |> 
+  filter(Purpose == "Holiday") |> 
+  summarise(Trips = sum(Trips)) |> 
+  autoplot(Trips)
+
+```
+
+Seasonality is multiplicative if its shape gets larger as the series increases, which is the case for Australian retail turnover. Australian holiday tourism is more additive, since the size of the seasonality does not change much as the number of trips increases or decreases. ETS models without specials will automatically select the most appropriate model for the data.
+
+```{r}
+aus_turnover <- aus_retail |> 
+  summarise(Turnover = sum(Turnover))
+fit <- aus_turnover |> 
+  model(ETS(Turnover))
+fit
+```
+
+The automatically selected ETS(M,A,M) model matches the patterns in the Australian retail turnover data. The trend is a straight line (additive), while the error and seasonality grows proportionately to the amount of turnover (multiplicative). As was done with the benchmark and regression models, we can:
+
+* look at the model with tidy(), glance(), and augment(),
+* produce forecasts with forecast().
+Let’s see how the ETS forecasts look.
+```{r}
+glance(fit)
+fit|>
+  report()
+```
+
+```{r}
+fit|>
+  augment()
+```
+
+
+```{r}
+fit |> 
+  forecast(h = "10 years") |> 
+  autoplot(aus_turnover)
+```
+
+Very nice! The trend matches the history, and the seasonality grows in size much like the historical data. You can also see the forecasts are very confident (small intervals) for the first two years, but get less confident (larger intervals) as we forecast further into the future.
+
+## Your turn!
+Produce forecasts from an automatically selected ETS model for Australia’s print media turnover. Does the chosen ETS model align with the patterns you see in the data?
+```{r}
+library(fpp3)
+aus_retail
+```
+
+```{r}
+data <- aus_retail|>
+  summarise(Turnover = sum(Turnover))
+data
+```
+
+```{r}
+?labs
+```
+
+```{r}
+data |>
+  autoplot()+
+  labs(y = "Total Turnover")+
+  ggtitle("Time Series Plot of Tutal Turnover over the Months")
+```
+
+```{r}
+fit <- data |> 
+  model(ETS(Turnover))
+fit
+```
+
+## Make the Plot
+```{r}
+fit |> 
+  forecast(h = "10 years") |> 
+  autoplot(data)
+```
+
+## ARIMA
+ARIMA models can also capture trends and seasonality, but it is achieved in a very different way. Rather than directly representing the structure of the trend and seasonal components like ETS, it uses a combination of data transformation, past values and past errors to produce forecasts.
+
+## Transformations needed!
+Unlike ETS models, an ARIMA model must have additive patterns in the data to work well. So if the data has multiplicative seasonality, use an appropriate transformation to simplify the patterns before estimating an ARIMA model.
+
+ARIMA models are specified using the ARIMA() function.
+
+### ARIMA specials
+The specials for the ARIMA model describe the number of lags and differences in the model.
+
+* pdq(): The non-seasonal parameters
+* PDQ(): The seasonal parameters
+
+The number of autoregressive (AR) lags are set by p and P, while the number of moving average (MA) lags are set by q and Q. The long term forecasting behaviour (trends and seasonality) are controlled by the differences d and D, where a seasonal difference imparts seasonality and two or more differences (or constants) produces a trend.
+
+More information is available in the ?ARIMA help file. Much like ETS models, an automatically selected ARIMA will be estimated if the specials aren’t specified.
+```{r}
+aus_turnover |> 
+  autoplot(vars(Turnover, box_cox(Turnover, 0.2)))
+```
+
+A box-cox transformation with lambda = 0.0178 seems to convert the multiplicative patterns in the data into additive ones. We need to use this transformation when estimating an ARIMA model.
+
+```{r}
+fit <- aus_turnover |> 
+  model(ARIMA(box_cox(Turnover, 0.2)))
+fit
+```
+
+The chosen model contains a seasonal difference and a non-seasonal difference, with 2 seasonal AR and 3 non-seasonal AR lags and 1 seasonal MA term.
+```{r}
+fit|>
+  augment()
+```
+
+```{r}
+fit|>
+  report()
+```
+
+```{r}
+fit |> 
+  forecast(h = "10 years") |> 
+  autoplot(aus_turnover)
+```
+
+The forecasts from this model also look good!
+
+## Your turn!
+Produce forecasts from an automatically selected ARIMA model for Australia’s print media turnover. Don’t forget to find and use a suitable transformation to simplify the multiplicative patterns in the data.
+
+```{r}
+kenya <- global_economy|>
+  filter(Country == "Kenya")
+kenya
+```
+
+### Plot the Raw Series
+```{r}
+kenya|>
+  autoplot(CPI)
+```
+
+```{r}
+kenya |> 
+  autoplot(vars(CPI, box_cox(CPI, 0.2)))
+```
+
+```{r}
+fit <- kenya |> 
+  model(ARIMA(box_cox(CPI, 0.2)))
+fit
+```
+
+```{r}
+fit|>
+  report()
+```
+
+```{r}
+fit|>
+  augment()
+```
+
+
+```{r}
+fit |> 
+  forecast(h = "10 years") |> 
+  autoplot(kenya)+
+  labs("Forecasted Consumer Price Index")
+```
+
+### ETS or ARIMA
+Both ETS and ARIMA models work well for time series that contain trends and seasonality, so which works better? ETS models are well suited to time series with multiplicative patterns since they can be directly modelled without transformations. ETS is also more explainable, since the common temporal patterns of trend and seasonality are directly modelled. ARIMA models however are more capable at incorporating subtle patterns like short-term correlations into the forecasts, and are capable of modelling cyclical data. Often pracitioners use an average of the forecasts from both models to produce a more accurate forecast (ensembling).
+
+In the day 5 materials we will learn about accuracy measures, which will allow us to more precisely identify which model works best on specific datasets.
+
+# Apply
+In this exercise, you use exponential smoothing and ARIMA models to produce forecasts of future administered vaccine doses for the next 12 months.
+
+## ETS
+1. Specify and train automatic Exponential Smoothing model
+2. Observe the model table and explain what each row and column represent
+3. Extract ETS model’s output using report(), tidy(), glance()
+4. Extract the components of the selected ETS model
+5. Generate forecasts using ETS and observe the forecast table
+6. Visualize forecasts
+7. Use the specific functions to determine manually the components and parameters of ETS models
+
+### ARIMA
+1.  and train automatic ARIMA model
+2. Observe the model table and explain what each row and column represent
+3. Extract ARIMA model’s output using report(), tidy(), glance()
+4. Generate forecasts using ARIMA
+5. Visualize forecasts
+6. Determine model components manually
+
+
+# DAY FIVE
+## LECTURE 
+
+
+## EXERCISE AND PRACTISES
+```{r}
+library(tsibble)
+library(tsibbledata)
+library(tidyverse)
+library(fable)
+```
+
+### Learn
+There are several approaches which can be used to evaluate the performance of a forecasting model. These methods can be split into two main categories: accuracy summaries and diagnostic checks. Accuracy summaries are single valued representations of the model’s performance (like features, but on forecast errors), while diagnostic checks involve plotting the residuals to identify any shortcomings in the model.
+
+### Accuracy summaries
+In the previous exercise we looked at forecasting the total Australian retail turnover using ETS and ARIMA models, and we produced these forecasts:
+```{r}
+aus_turnover <- aus_retail |> 
+  summarise(Turnover = sum(Turnover))
+fit <- aus_turnover |> 
+  model(
+    ets = ETS(Turnover),
+    arima = ARIMA(box_cox(Turnover, 0.2))
+  )
+fit |> 
+  forecast(h = "10 years") |> 
+  autoplot(aus_turnover, alpha = 0.5)
+```
+
+Plotting the forecasts simultaneously makes it easy to compare them. This allows us to see that while the seasonality and intervals from both models are similar, the trend from ARIMA is stronger than ETS. But which model is better? To answer this we can summarize the forecasting performance of the models. The simplest is the accuracy on the historical training data. In addition to the forecasts shown above, we produce 1-step forecasts on the training data when fitting the model. We can obtain these from the .fitted column of the augment() output.
+
+```{r}
+fit |> 
+  forecast(h = "10 years") |> 
+  autoplot(aus_turnover, alpha = 0.5) + 
+  autolayer(augment(fit), .fitted, alpha = 0.7)
+```
+
+Both models match the historical data closely, but which is more accurate? For this we can use the accuracy() function, which summarises the errors into a single summary statistic.
+
+```{r}
+accuracy(fit)
+```
+
+By default you will see a set of statistics that summarizes the point forecasting accuracy, where the models closer to 0 are more accurate. MAE and RMSE are commonly used, but their scale independent versions MASE and RMSSE are useful if you’re comparing between multiple datasets. In all accuracy metrics we see that the ARIMA model is more accurate on the training data. But is it more accurate for forecasting?
+
+### Your turn!
+Compare the in-sample accuracy statistics for all models used to forecast Murban crude oil prices in Kenya. Which is most accurate, and which is least? Does this align with your expectations? (Will do it later on)
+
+```{r}
+crude <- read_csv("crude.csv")
+crude
+```
+
+## Data Preparation
+### Check Duplicates
+```{r}
+crude |> duplicated() |> sum()
+```
+
+### Convert variable month in the appropriate format
+```{r}
+crude <- crude|>
+  mutate(month = yearmonth(month))
+crude
+```
+
+### Check the Structure of the Data
+```{r}
+str(crude)
+```
+
+### Createa a tsibble
+```{r}
+crude_tsb <- crude|>
+  as_tsibble(index = month, key = NULL)
+crude_tsb
+```
+
+### Plot the Series
+```{r}
+crude_tsb|>
+  autoplot()
+```
+
+```{r}
+fit <- crude_tsb |> 
+  model(
+    ets = ETS(Crude.Prices),
+    arima = ARIMA(box_cox(Crude.Prices, 0.2))
+  )
+fit |> 
+  forecast(h = "10 years") |> 
+  autoplot(crude_tsb, alpha = 0.5)
+```
+
+```{r}
+fit |> 
+  forecast(h = "10 years") |> 
+  autoplot(crude_tsb, alpha = 0.5) + 
+  autolayer(augment(fit), .fitted, alpha = 0.7)
+```
+
+### Test the Model Accuracy
+```{r}
+accuracy(fit)
+```
+
+```{r}
+fit|>
+  augment()
+```
+
+```{r}
+fit|>
+  report()
+```
+
+A more genuine approach to calculating forecasting performance is to use a training and test set split. This separates the data into two parts, and because the test data is not used in producing the forecasts, it should provide a reliable indication of how well the model is likely to forecast on new data. To withhold some data for forecast evaluation, we first filter() the data to exclude the test period before training the model.
+
+```{r}
+fit <- aus_turnover |> 
+  # Keep 2 years of test data for evaluation
+  filter(Month < yearmonth("2017 Jan")) |> 
+  model(
+    ets = ETS(Turnover),
+    arima = ARIMA(box_cox(Turnover, 0.2))
+  )
+fit |> 
+  forecast(h = "2 years") |> 
+  autoplot(aus_turnover, alpha = 0.5)
+```
+
+We can then calculate the same accuracy metrics on the forecasted test set using accuracy() again, but this time we need to provide the data used.
+```{r}
+fit |> 
+  forecast(h = "2 years") |> 
+  accuracy(aus_turnover)
+```
+
+## Your turn!
+Now compare the out-of-sample (test set) accuracy statistics for all models used to forecast Australia’s print media turnover. Which is most accurate, and which is least? Does it differ to the results from the in-sample (training set) accuracy? (Will work on it)
+
+
+However a test set of two years isn’t a very reliable indication of forecasting performance - what if these two years looked slightly different from the training data and one model got lucky?
+
+The gold standard in forecasting performance evaluation is to use time series cross-validation. This involves creating many training and test splits across many time points in the data. The most common is to use a stretching window, which incrementally grows the training data to include new information. Instead of using filter() to create the training set, we will now use stretch_tsibble() to create the stretching ‘folds’ of training data. The .id column identifies the fold of cross-validation for each series.
+
+### Cross-validation options
+It is useful to set a few options in stretch_tsibble(), as the default can easily create 100s of folds. This helps reduce the workload for your computer while still giving a reasonable indication of your model’s forecasting performance!
+
+* init controls the initial fold size, I’ve set it to 48 months to include 4 years of data to start with
+* step controls how much additional data is introduced in each fold, 12 months will increase the training data’s length by 1 year at a time.
+
+```{r}
+aus_turnover |> 
+  stretch_tsibble(.init = 48, .step = 12)
+```
+
+To produce forecasts on the cross-validation folds and compute cross-validated accuracy summaries, we again train the models and use accuracy() but this time on the cross-validated data. This might take a while since we are now estimating a model making a forecast for every fold in cross-validated data!
+```{r}
+aus_turnover |> 
+  # Prepare cross-validation folds of the data
+  stretch_tsibble(.init = 48, .step = 12) |> 
+  model(
+    ets = ETS(Turnover),
+    arima = ARIMA(box_cox(Turnover, 0.2))
+  ) |> 
+  forecast(h = "1 year") |> 
+  accuracy(aus_turnover)
+```
+
+
+## Your turn!
+Now compare the cross-validated accuracy statistics for all models used to forecast Australia’s print media turnover. Which is most accurate, and which is least? Does it differ to the results from the in-sample (training set) and out-of-sample (test set) accuracy?
+
+### Diagnostic checks
+## Apply
+In this part, we evaluate the forecast accuracy of all models we have covered so far using a simple train/test split and time series cross validation.
+
+### Basic of train/test forecast accuracy
+Split the data into train and test ensuring the number of months in the test set equals the forecast horizon. Specify and train the following models on the train data:
+
+Average
+Naive
+Seasonal Naive
+ETS
+ARIMA
+Regression with trend and seasonality
+Regression with trend, seasonality, and population_under1
+Regression with trend, seasonality, population_under1, and strike
+Combination of ETS and ARIMA and regression with population and strike
+Produce forecasts
+
+Replace the values of population in the test set with its estimation
+Produce forecasts for dose adminstrated
+Compute forecast accuracy including point forecast accuracy, prediction interval and probabilistic forecasts
+
+Visualise the forecasts
+
+Advanced performance evaluation
+Time series cross validation
+Split the data into test and train
+
+the size of test set equals the 
+ of the length of the time series
+the size of test set equals the 
+ of the length of the time series
+Apply time series cross-validation technique to create different time series rolling origins for both the train and test set
+
+Replace the values of population in the cross-validated test set with its estimations
+
+Specify and train the following models on the cross-validated train dataset:
+
+Average
+Naive
+Seasonal Naive
+ETS
+ARIMA
+Regression with trend and seasonality
+Regression with trend, seasonality, and population_under1
+Regression with trend, seasonality, population_under1, and strike
+Combination of ETS and ARIMA and regression with population and strike
+Produce forecasts
+
+Compute forecast accuracy including point forecast accuracy, prediction interval and probabilistic forecasts
+
+Compute total average forecast accuracy across all orinigs and horizons
+Compute and visualise forecast accuracy across all horizons for each origin
+Compute average forecast accuracy across all orinigs for each horizon
+Specify, train and forecast using the most accurate model and visualise forecast
+
+Residual diagnostics
+Extract residuals from the model table from the most accurate model
+
+Produce the time plot of residuals from the most accurate model
+
+Create the histogram of residuals from the most accurate model
+
+Produce the ACF plot of of residuals from the most accurate model
+
+
+
+
+
+
+
+
+usethis::use_course("https://workshop.f4sg.org/africast/exercises.zip")

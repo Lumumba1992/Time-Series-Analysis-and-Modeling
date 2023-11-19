@@ -1,0 +1,44 @@
+---
+title: "PRINCIPLES OF TIME SERIES FORECASRING IN R"
+author: "Lumumba Wandera Victor\n \\vspace{1in} "
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE,comment = NA, message=FALSE,
+                      fig.height=4, fig.width=6)
+```
+
+\newpage
+# DAY ONE
+```{r}
+us_employment
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

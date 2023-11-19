@@ -1,0 +1,1356 @@
+---
+title: "Day Four: Principles of Time Series Forecasting"
+author: "Lumumba Wandera Victor"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+format: docx
+editor: visual
+---
+
+## Set up the Document
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE,comment = NA, message=FALSE,
+                      fig.height=4, fig.width=6)
+```
+
+## Day Four: Principles of Time Series Forecasting
+
+## FIRST SESSION 10:00 AM TO 11:30 AM
+
+## Exponential Smoothing
+
+##### Summary Notes on Exponential Smoothing
+
+Exponential smoothing is a widely used time series forecasting method that provides a way to make predictions based on past data while giving more weight to recent observations. It is particularly useful for modeling and forecasting time series data with a trend and/or seasonality. Here are detailed notes on exponential smoothing for time modeling and forecasting:
+
+**1. Time Series Data:**
+
+-   Exponential smoothing is used for analyzing and forecasting time series data, where observations are recorded at regular intervals (e.g., daily, monthly, yearly).
+
+**2. Smoothing Parameter (α):**
+
+-   Exponential smoothing relies on a smoothing parameter (α), which controls the weight given to the most recent observation. A smaller α places more emphasis on older data, while a larger α focuses on recent data.
+
+-   0 \< α \< 1; typically chosen through trial and error or statistical methods.
+
+**3. Three Main Types:**
+
+-   There are three primary forms of exponential smoothing:
+
+    a\. **Simple Exponential Smoothing (SES):**
+
+    -   Suitable for time series data without a trend or seasonality.
+
+    -   Forecast (Ft) and smoothed value (St) are calculated using the previous data point and α.
+
+    b\. **Double Exponential Smoothing (Holt's Exponential Smoothing):**
+
+    -   Designed for time series data with a trend but no seasonality.
+
+    -   Adds a trend component (Tt) to SES for forecasting.
+
+    -   Forecast (Ft) and smoothed value (St) are calculated based on both the level and trend.
+
+    c\. **Triple Exponential Smoothing (Holt-Winters Exponential Smoothing):**
+
+    -   Applicable to time series data with both trend and seasonality.
+
+    -   Includes three components: level (Lt), trend (Tt), and seasonality (St).
+
+    -   Requires different equations for forecasting the three components.
+
+**4. Initialization:**
+
+-   The initial values for the components (e.g., initial level, trend, seasonality) need to be set or estimated, usually based on historical data.
+
+**5. Forecasting:**
+
+-   Exponential smoothing provides forecasts for future periods by updating the components in each time step:
+
+    -   Level Update: Lt = α \* Yt + (1 - α) \* (Lt-1), where Yt is the observed value.
+
+    -   Trend Update (for double and triple exponential smoothing): Tt = β \* (Lt - Lt-1) + (1 - β) \* Tt-1
+
+    -   Seasonality Update (for triple exponential smoothing): St = γ \* (Yt - Lt) + (1 - γ) \* St-m, where m is the seasonality period.
+
+**6. Error Metrics:**
+
+-   To evaluate the forecasting accuracy, common error metrics include Mean Absolute Error (MAE), Mean Squared Error (MSE), and Mean Absolute Percentage Error (MAPE).
+
+**7. Seasonal Decomposition:**
+
+-   For triple exponential smoothing, the method decomposes the time series into level, trend, and seasonal components, which can be insightful for understanding the data.
+
+**8. Advantages:**
+
+-   Exponential smoothing is simple to implement, computationally efficient, and adaptable to various time series patterns.
+
+-   It can be automated and is suitable for short- to medium-term forecasting.
+
+**9. Limitations:**
+
+-   Exponential smoothing may not work well for time series data with complex patterns or irregular outliers. Other forecasting methods may be more appropriate in such cases.
+
+**10. Software and Tools:**
+
+-   Many statistical software packages, including R, Python (using libraries like Statsmodels), and specialized forecasting software, offer implementations of exponential smoothing techniques.
+
+Exponential smoothing is a valuable method for time modeling and forecasting due to its simplicity, flexibility, and effectiveness in capturing trends and seasonality in time series data. When applied appropriately, it can provide reliable forecasts for planning and decision-making.
+
+```{r}
+library(fpp3)
+```
+
+## fpp3: Data for "Forecasting: Principles and Practice" (3rd Edition)
+
+### Description
+
+All data sets required for the examples and exercises in the book "Forecasting: principles and practice" by Rob J Hyndman and George Athanasopoulos [https://OTexts.com/fpp3/](https://otexts.com/fpp3/). All packages required to run the examples are also loaded.
+
+### Author(s)
+
+**Maintainer**: Rob Hyndman [Rob.Hyndman\@monash.edu](mailto:Rob.Hyndman@monash.edu) ([ORCID](https://orcid.org/0000-0002-2140-5352)) \[copyright holder\]
+
+Other contributors:
+
+-   George Athanasopoulos \[contributor\]
+
+-   Mitchell O'Hara-Wild \[contributor\]
+
+-   RStudio \[copyright holder\]
+
+### See Also
+
+Useful links:
+
+-   <https://github.com/robjhyndman/fpp3package>
+
+-   [https://OTexts.com/fpp3/](https://otexts.com/fpp3/)
+
+-   Report bugs at <https://github.com/robjhyndman/fpp3package>
+
+### Recap from Day 3
+
+### Description of the Data
+
+## Australian domestic overnight trips
+
+### Description
+
+A dataset containing the quarterly overnight trips from 1998 Q1 to 2016 Q4 across Australia.
+
+### Usage
+
+```         
+tourism 
+```
+
+### Format
+
+A tsibble with 23,408 rows and 5 variables:
+
+-   **Quarter**: Year quarter (index)
+
+-   **Region**: The tourism regions are formed through the aggregation of Statistical Local Areas (SLAs) which are defined by the various State and Territory tourism authorities according to their research and marketing needs
+
+-   **State**: States and territories of Australia
+
+-   **Purpose**: Stopover purpose of visit:
+
+    -   "Holiday"
+
+    -   "Visiting friends and relatives"
+
+    -   "Business"
+
+    -   "Other reason"
+
+-   **Trips**: Overnight trips in thousands
+
+### References
+
+[Tourism Research Australia](https://www.tra.gov.au/)
+
+### View the Data
+
+```{r}
+tourism
+```
+
+### Prepare the data by Summarizing to get the Sum
+
+```{r}
+aus_tourism_purpose <- tourism|> 
+  group_by(Purpose) |> 
+  summarise(Trips =sum(Trips))
+aus_tourism_purpose
+```
+
+The data above is prepared for use. We have the data grouped by purpose of travel and total trips or each purpose in each quarter. We have four times series because we have four purpose of travel.
+
+### Plot Sum of Trips
+
+```{r}
+aus_tourism_purpose|>
+  autoplot(Trips)
+```
+
+### Filter for Various Purpose of Travel (Holiday
+
+```{r}
+aus_tourism_purpose|>
+  filter(Purpose == "Holiday")|>
+  autoplot(Trips)
+```
+
+### Fit the Various Forecast Models
+
+```{r}
+fit <- aus_tourism_purpose |> 
+  model(average = MEAN(Trips),
+        naive = NAIVE(Trips),
+        seasonal_naive = SNAIVE(Trips),
+        Regression = TSLM(Trips ~ trend() + season()))
+```
+
+In the model estimation above, the average and naive models are the bench mark model which we would like to use as our reference to compare with other models. Trips is the response variable in this case. In other words, we want to model the total number of trips. The models above also comprised of Time Series Linear Model.
+
+### View the Models that we have
+
+```{r}
+fit
+```
+
+We have four models (average model, naive model, seasonal naive and time series regression model, grouped by purpose of travel
+
+```{r}
+fit |> 
+  glance()
+```
+
+In the above results we have all the four models for every purpose of travel. Besides, information for each models including r-square, adjusted r-square, AIC, AICc, BIC among other information.
+
+```{r}
+fit |> 
+  tidy()
+```
+
+The out above also provide us with information for the models estimated. We can use report function to look the various models. However, it is good to note that report function work for a single model as shown below
+
+### Report the Model (Time Series Regression Model for the Four Purpose of Travel)
+
+```{r}
+fit |> select(Regression) |> 
+  report()
+```
+
+### Report the TSLM for Holiday Purpose of Travel
+
+```{r}
+fit |> select(Regression) |> 
+  filter(Purpose == "Holiday") |> 
+  report()
+```
+
+### Forecast using the Esytimated Model Above
+
+```{r}
+fcst <- fit |> 
+  forecast(h = "2 years")
+fcst
+```
+
+Here we need to know what each column represents. The model column correspond to the list of models estimated (four models). Quarter column are the quarters we are forecasting a head. We also get the distribution of the forecast based on the normal distribution, that is, the Trips column. We also have the mean column which is the point focus.
+
+### Visualize the Focus
+
+```{r}
+fcst|>
+  autoplot()
+```
+
+### Visualize the Model for Only One Purpose say Holiday
+
+```{r}
+fcst|>
+  filter(Purpose == "Holiday")|>
+  autoplot()
+```
+
+In the plot above, average and naive model are not doing so well. Let us remove the level of confidence and have a closer look at the plot
+
+```{r}
+fcst|>
+  filter(Purpose == "Holiday")|>
+  autoplot(level = NULL)
+```
+
+It is now clear that naive model and regression are not doing quite better. Seasonal naive and time series regression model are behaving quite the same. Let us now forecast using (h=24). There is a difference between h=24 and h = "2 years". The latter shows two year with results in four quarters while the former implies we are forecasting 24 quarters ahead, which is five years. If the granularity of your tsibble is quarterly data then h = "2 years" would mean that you want to forecast the next eight quarters.
+
+```{r}
+fcst <- fit |> 
+  forecast(h = 24)
+fcst
+```
+
+### Plot the Forecast for the 24 Quaters
+
+```{r}
+fcst |> 
+  autoplot()
+```
+
+#### Remove the Confidence Bound
+
+```{r}
+fcst |> 
+  autoplot(level = NULL)
+```
+
+We can now easily extract the forecast one specific purpose of travel (Holiday)
+
+```{r}
+fcst |> 
+  filter(Purpose == "Holiday")|>
+  autoplot()
+```
+
+The naive forest has a very wide forecast interval. The wider the forest interval, the uncertain we become about our forecast. When a forecast interval is very wide, it typically means that there is a significant amount of uncertainty or variability associated with the forecasted value. Several factors contribute to a wide forecast interval, and the implications of this wide interval can vary depending on the specific context and application. Here are some things that can happen when the forecast interval is very wide:
+
+1.  **High Uncertainty:** A wide forecast interval suggests that the forecast model or method is unable to make precise predictions. This could be due to the complexity of the data or the limitations of the forecasting technique. In practical terms, this means that the actual outcome could fall within a broad range of values.
+
+2.  **Limited Predictive Power:** A wide forecast interval can indicate that the available data is not highly informative for making accurate predictions. This could be because of data quality issues, missing information, or the presence of multiple factors that affect the outcome.
+
+3.  **Risk Management:** A wide forecast interval is often seen in situations with a high degree of risk. Decision-makers need to be aware of this uncertainty and plan accordingly. For example, in financial markets, a wide forecast interval can signal a high level of volatility, which may lead to cautious investment decisions.
+
+4.  **Need for Sensitivity Analysis:** When the forecast interval is wide, it may be advisable to conduct sensitivity analysis. This involves assessing how changes in various input variables or assumptions affect the forecasted outcome. Sensitivity analysis helps decision-makers understand the potential impact of different scenarios.
+
+5.  **Communication Challenges:** Wide forecast intervals can pose communication challenges, as it can be difficult to convey the level of uncertainty to stakeholders. Decision-makers may need to balance the desire for precise forecasts with the need to acknowledge uncertainty.
+
+6.  **Risk Mitigation:** A wide forecast interval can lead to a greater focus on risk mitigation strategies. In situations with substantial uncertainty, organizations may invest in risk management, diversification, or hedging to protect against adverse outcomes.
+
+7.  **Data Collection and Model Improvement:** In cases where the forecast interval remains consistently wide, it may be necessary to collect more relevant data, improve modeling techniques, or consider alternative forecasting methods to reduce uncertainty.
+
+In summary, a wide forecast interval implies significant uncertainty and the potential for a range of outcomes. Decision-makers should consider the implications of this uncertainty in their planning and risk management efforts. It is essential to understand the underlying reasons for the wide forecast interval and take appropriate actions to manage risk and make informed decisions.
+
+### Get the 95% Prediction Interval on Separate Columns
+
+```{r}
+fcst |> 
+  hilo(level = 95) |> 
+  unpack_hilo("95%")
+```
+
+So now, we have the entire forecast distribution, stored in Trips column, the point forecast stored in mean column and the 95% prediction interval.
+
+### Forecast the Distribution
+
+### Load the Following Library
+
+```{r}
+library(ggdist)
+```
+
+#### Make the Plot to show the Distribution of Forecast
+
+```{r}
+fcst |> ggplot(aes(x = Quarter, ydist =Trips))+
+  stat_halfeye()+
+  facet_wrap(vars(Purpose))+
+  labs(x = "Quarter", y="Trips", title = " Forecast Distributions of Trips")+
+  ggthemes::theme_clean()
+```
+
+You can interpret the distribuction of the forecast for various purposes.
+
+## EXPONENTIAL SMOOTHING
+
+### From simple methods to Exponential Smoothing
+
+Naive use only the last observation to makes prediction for the indicated horizone. On the other hand, average method use all observations to make predi ction. In this case, the average of the entire observations is considered as the preeiction for the future for the indicated horizon. But now in this case, we want something in between naive and average methods. Most recent data should have more weight. This is exactly the concept behind exponential smoothing
+
+### Load Global Economic Data
+
+```{r}
+global_economy
+```
+
+When modeling an ExponenTial Smoothing model has three main components and these are Error, Trend and Season.
+
+1.  Error: Additive ("A") or multiplicative ("M")
+2.  Trend: None ("N"), additive ("A"), multiplicative ("M"), or damped ("Ad" or "Md").
+3.  Seasonality: None ("N"), additive ("A") or multiplicative ("M")
+
+### Plot Australian Exports
+
+```{r}
+global_economy|>
+  filter(Country == "Australia")|>
+  autoplot(Exports)
+```
+
+```{r}
+dcmp <- global_economy |>
+  filter(Country == "Australia")|>
+  filter(Year >= year(1960)) |>
+  model(STL(Exports))
+dcmp 
+```
+
+### View the Decomposed Time Series
+
+```{r}
+dcmp |>
+  components()
+```
+
+### Plot the Decomposition
+
+```{r}
+dcmp |>
+  components() |>
+  autoplot(Exports)
+```
+
+From the plot above, our time series has no seasonal component, so we remain with the trend and remainder.
+
+#### General ETS Model (Automatic ETS)
+
+```{r}
+fit <- global_economy |> 
+  filter(Country == "Australia") |> 
+  model(ses = ETS(Exports ~ error("A") + trend("N") +  season("N")))
+
+fit
+```
+
+From the plot, we can see that the error term is additive, trend is none, seasonal is also none. In other words, the models assume trend and seasonality is none.
+
+#### Glance()
+
+Glance will return will return several metrics for model evaluation including AIC , BIC and other metrics.
+
+```{r}
+fit |> 
+  glance()
+```
+
+#### Use tidy() to view the alpha parameter and other information
+
+```{r}
+fit |> 
+  tidy()
+```
+
+The output above gives us alpha value and l(0). It is however, important to note that when we have an exponential smoothing, basically the process has to start from a particular point. Thus the process goes to the beginning of the time series. Remember exponential smoothing are recursive calculations, we start from the beginning of the times series and go on doing calculation to the last observation of the time series in order to get the fitted values. To have this process, we need something in exponential smoothing called l(0). If you follow the calculation you can as well derive the l(0). The estimate will have l1, l2, ....ln. Now, remember, to calculate l1, you mst l(0) value.
+
+#### Report
+
+```{r}
+fit |> 
+  report()
+```
+
+The report tell us what is the model that we estimated and also give us some parameters like apha that we have seen before.
+
+### Forecast
+
+```{r}
+fit |> 
+  forecast(h=10) |> 
+  autoplot()
+```
+
+### Australian Economy
+
+```{r}
+aus_economy <- global_economy |> 
+  filter(Country == "Australia") |>
+  mutate(Pop = Population / 1e6)
+```
+
+```{r}
+aus_economy
+```
+
+### Autoplot Australian Economic Growth (GDP
+
+```{r}
+autoplot(aus_economy)
+```
+
+```{r}
+fit <- aus_economy |>
+  model(ETS(Pop))
+fit
+```
+
+#### Report the Model
+
+```{r}
+report(fit)
+```
+
+The output above shows that ther error of our model is additive, the trends is also additive as well, however, we do not have seasonal component in the data. Let us plot and have a look at the plot.
+
+```{r}
+aus_economy|>
+  autoplot(Pop)
+```
+
+#### Extract the Components
+
+```{r}
+fit |> 
+  components()
+```
+
+Level correponse to the state equation which has lt in it. Slope column correspond to the equation that has bt in it, and finnaly, the remainder correspond to the epsilon part. Consider the information below.
+
+```{r}
+knitr::include_graphics("ets.png")
+```
+
+#### Plot the Component of the Time Series
+
+```{r}
+fit |> 
+  components() |>
+  autoplot()
+```
+
+### Forecast the Next ten Periods and Create the Plot
+
+```{r}
+fit |> 
+  forecast(h=10) |> 
+  autoplot()
+```
+
+### Add the Original Data to the Plot
+
+```{r}
+fit |> 
+  forecast(h=10) |> 
+  autoplot(aus_economy)
+```
+
+The plot above seems to be a good prediction model since the prediction interval are quite narrower as required.
+
+### Model the Exponential Smoothing with Holidays Data set
+
+```{r}
+holiday <- tourism |> 
+  filter(Purpose == "Holiday")
+holiday
+```
+
+### Plot the Trips for Holiday Purpose
+
+```{r}
+holiday|>
+  #filter(Region == "Adelaide")|>
+  filter(State == "South Australia")|>
+  autoplot()
+```
+
+### Estimate the ETS Model
+
+```{r}
+fit <- holiday |> 
+  model(ets = ETS(Trips))
+```
+
+### Glance
+
+```{r}
+fit|>
+  glance()
+```
+
+### Augment
+
+```{r}
+fit|>
+  augment()
+```
+
+```{r}
+fit |> 
+  filter(Region == "Snowy Mountains") |> 
+  report()
+
+```
+
+### Use Component Function to Inspect the Model
+
+```{r}
+fit |> 
+  filter(Region == "Snowy Mountains") |> 
+  components()
+```
+
+In the output above , we have seasonal part, and the remainder part as well. These are the s components
+
+### Plot the Components
+
+```{r}
+fit |> 
+  filter(Region == "Snowy Mountains") |> 
+  components()|> 
+  autoplot()
+```
+
+### Summary of Trend Component with Both Additive Error and Multiplicative Error
+
+```{r}
+knitr::include_graphics("trend.png")
+```
+
+### Now, how does ETS Estimates Parameters
+
+1.  Smoothing parameters 𝛼, 𝛽, 𝛾 and 𝜙, and the initial states ℓ0, 𝑏0, 𝑠0, 𝑠−1, ... , 𝑠−𝑚+1 are estimated by maximizing the "likelihood" = the probability of the data arising from the specified model.
+
+2.  For models with additive errors equivalent to minimizing SSE.
+
+3.  For models with multiplicative errors, not equivalent to minimizing SSE.
+
+#### Note!!!
+
+The parameter 𝛼 is for level, 𝛽 for trend, 𝛾 for seanality and and 𝜙 for dumped trend. We also have the initial values, like ℓ0 for the level , we need 𝑏0 to start the calculations for the levels. We also need a collection of the seasonal indices, and these 𝑠0, 𝑠−1, ... , 𝑠−𝑚+1. These collection of seasonal indices depends on the temporal granularity. In the equation referes to the number of seasons, if we have quarterly data so m=4, if you monthly data = 12. We indtroduce these parameter like gamma, beta and alpha to control the change of these components over time. We leave this to the ETS function to do the job automatically. All these value are automatically estimated by the function using maximum likelihood estimation. How are models selected in ETS, we use the following,
+
+1.  Akaike's Information Criterion (AIC)
+2.  Corrected Akaike's Information Criterion (AICc)
+3.  Bayesian Information Criterion (BIC)
+
+### AIC and Cross-Validation
+
+Minimizing the AIC assuming Gaussian residuals is asymptotically equivalent to minimizing one-step time series cross validation MSE. The best model is the one that minimzes the mean square error (MSE)
+
+## Retail Data
+
+```{r}
+cafe_vic <- tsibbledata::aus_retail |> 
+  filter(State == "Victoria",
+         Industry == "Cafes, restaurants and catering services"
+         ) |> select(Month,Turnover)
+cafe_vic
+```
+
+```{r}
+cafe_vic|>
+  autoplot()
+```
+
+You can see we have multiplicative seasonality. So before modeling we will need a bit of transformation as shown below.
+
+### How to forecast with transformations
+
+```{r}
+cafe_vic |>
+  autoplot(box_cox(Turnover, lambda = .2))
+```
+
+The plot now looks better after transformation. The variance is stabalized.
+
+```{r}
+fit <- cafe_vic |> 
+  model(ets = ETS(box_cox(Turnover, lambda = .2)))
+fit
+```
+
+The model above has additive trend and additive seasonality.
+
+### Fit the Model without Transformation
+
+```{r}
+fit <- cafe_vic |>
+  model(ets = ETS(Turnover))
+fit
+```
+
+Developing the model with transformation results into a model with multiplicative error, additive trend and multiple seasonality. However, for the purpose of this training, we will use the transformed model
+
+### Forecasting (12 Periods)
+
+```{r}
+fct <- fit |> 
+  forecast(h = 12)
+```
+
+### View the Forecast
+
+```{r}
+fct
+```
+
+### Plot the Forecast
+
+```{r}
+fct |> 
+  autoplot()
+```
+
+### Plot the Forecast with the Data as well
+
+```{r}
+fct |> 
+  autoplot(filter_index(cafe_vic, "1982 Jan" ~ .))
+```
+
+### Generate function to produce forecasts using bootstrapping
+
+```{r}
+simulation <- fit |> 
+  generate(h= 12, times = 1000, bootstrap = TRUE) 
+```
+
+### View the Forecast
+
+```{r}
+simulation
+```
+
+### Plot the 1000 Possible Forecast
+
+```{r}
+cafe_vic |> filter_index("2019 Dec" ~ .) |> 
+  ggplot(aes(x = Month))+
+  geom_line(aes(y =Turnover))+
+  geom_line(aes( y = .sim, colour = as.factor(.rep)), data = simulation)+
+  guides(col = FALSE)
+```
+
+### Plot the Simulation together with the Data
+
+```{r}
+cafe_vic |> filter_index("1980 Jan" ~ .) |> 
+  ggplot(aes(x = Month))+
+  geom_line(aes(y =Turnover))+
+  geom_line(aes( y = .sim, colour = as.factor(.rep)), data = simulation)+
+  guides(col = FALSE)
+```
+
+```{r}
+fct_boot <- fit |> 
+  forecast(h= 12, bootstrap = TRUE)
+fct_boot
+```
+
+The forecast was determined from a sample of 5000 trials.
+
+```{r}
+fct_boot |> 
+  hilo(level = 90)
+```
+
+### Distribution of the Forecast
+
+```{r}
+fct_boot |> 
+  ggplot(aes(x = Month, ydist =Turnover))+
+  stat_halfeye()+
+  labs(title = "Forecast Distribution")
+```
+
+### Forecast Distribution together with the data as well
+
+```{r}
+fct_boot |> 
+  ggplot(aes(x = Month, ydist =Turnover))+
+  stat_halfeye()+
+  autolayer(cafe_vic |> filter_index("2018 Jan" ~ .))
+```
+
+In the beginning of the forecast, the distribution is very close to the point focus, however, as the forecast progresses, the distribution of the forecasts widens creating uncertainty in the forecast. The wider indicated a higher variability in the forecast.
+
+## SECOND SESSION 11:45 AM TO 1:15 PM
+
+## AUTOREGRESSIVE INTEGRATED MOVING AVERAGE (ARIMA)
+
+### Global Economic Data
+
+```{r}
+global_economy
+```
+
+### Extract the Data for Egypt
+
+```{r}
+egy_economy <- global_economy |> 
+  filter(Code == "EGY") 
+egy_economy
+```
+
+### Autoplot Export Volume Relating to Egypt
+
+```{r}
+egy_economy |> 
+  autoplot(Exports)
+```
+
+## ARIMA Model
+
+AR: autoregressive (lagged observations as inputs)
+
+I: integrated (differencing to make series stationary)
+
+MA: moving average (lagged errors as inputs)
+
+An ARIMA model is rarely interpretable in terms of visible data structures like trend and seasonality. But it can capture a huge range of time series patterns.
+
+ARIMA, or Autoregressive Integrated Moving Average, is a widely used time series forecasting model that combines autoregressive (AR), differencing (I), and moving average (MA) components. This model is particularly effective for capturing and predicting patterns in time-dependent data. The ARIMA model is specified by three parameters: p, d, and q, where p represents the autoregressive order, d is the differencing order, and q denotes the moving average order.
+
+The autoregressive (AR) component involves predicting a future value based on its past values. The order of autoregression (p) signifies how many past observations are considered for prediction. The differencing (I) component is applied to make the time series stationary, which is crucial for accurate forecasting. The differencing order (d) indicates how many times differencing is performed to achieve stationarity. Finally, the moving average (MA) component models the relationship between an observation and a residual error from a moving average model applied to lagged observations. The order of the moving average (q) determines how many past residual errors are considered in the prediction.
+
+The strength of ARIMA lies in its flexibility to handle various time series patterns, including trend, seasonality, and autocorrelation. By adjusting the p, d, and q parameters, analysts can tailor the model to the specific characteristics of the time series data they are working with. Despite its effectiveness, ARIMA assumes that the underlying data is linear and stationary, and it may not perform optimally in the presence of nonlinearities or structural breaks. Additionally, careful consideration of model diagnostics and validation is essential to ensure the reliability of the forecasts generated by the ARIMA model.
+
+### Stationarity
+
+Stationarity is a fundamental concept in time series analysis, indicating that the statistical properties of a time series remain constant over time. A stationary time series exhibits constant mean, variance, and autocorrelation structure, making it more amenable to analysis and modeling. The absence of trends or seasonality in a stationary series simplifies the task of making predictions, as statistical patterns observed in the past are expected to continue into the future. Achieving stationarity often involves differencing the data to remove trends and seasonal effects. Statistical models, such as ARIMA, assume stationarity to provide accurate forecasts. Identifying and addressing non-stationarity is a critical step in time series analysis, enhancing the reliability and interpretability of models applied to temporal data.
+
+### Why Difference the Series
+
+Differencing helps to stabilize the mean. The differenced series is the change between each observation in the original series. Occasionally the differenced data will not appear stationary and it may be necessary to difference the data a second time. In practice, it is almost never necessary to go beyond second-order differences otherwise will information from the data.
+
+### Autoregressive Component
+
+```{r}
+knitr::include_graphics("ar.png")
+```
+
+### Moving Average Component
+
+```{r}
+knitr::include_graphics("ma.png")
+```
+
+When the two models (AR and MA) are combine, we have the autoregressive moving average (ARMA) model as shown below
+
+```{r}
+knitr::include_graphics("arma.png")
+```
+
+We also a variant of ARMA model called ARIMA model which include the differencing part. The d-differencing series follows an ARMA model therefore we need to choose the value of p,d,q. In other words, we have to choose the order for autoregressive part and moving average part. Differencing is done only when the time series is not stationary. p is the order of the autoregressive part. d is the first differencing involved and q is the order of the moving average part.
+
+## Fit the ARIMA Model
+
+```{r}
+fit <- egy_economy |> 
+  model(arima = ARIMA(Exports)) 
+```
+
+### View the Model Output Using report() Function
+
+```{r}
+report(fit)
+```
+
+The given ARIMA(2,0,1) model with a mean includes autoregressive (AR) and moving average (MA) components. Specifically, it is defined by the following equations:
+
+```{r}
+knitr::include_graphics("model.png")
+```
+
+Here:
+
+-   Y_t​ represents the exports at time t.
+
+-   The constant term is 2.5623.
+
+-   The autoregressive component includes lagged values Yt−1​ and Yt−2​ with coefficients 1.6764 and -0.8034, respectively.
+
+-   The moving average component includes the lagged error term ϵt−1​ with a coefficient of -0.6896.
+
+-   e_t is the white noise error term at time t.
+
+-   The variance of the error term sigma square is estimated as 8.046.
+
+The Akaike Information Criterion (AIC) is a measure of the model's goodness of fit, and in this case, AIC=293.13. AICc and BIC are corrected versions of AIC to account for sample size, with AICc=294.29 and BIC=303.43. These metrics can be used for model comparison, where lower values indicate a better fit. The log-likelihood is -141.57, representing the maximized value of the likelihood function given the data and model parameters. Overall, the ARIMA(2,0,1) model provides a statistical description of the exports time series, incorporating lagged values and error terms for forecasting and analysis.
+
+### Plot the Forecast for the Next Five Periods
+
+```{r}
+fit |> 
+  forecast(h=5) |> 
+  autoplot()
+```
+
+### Plot together with the data
+
+```{r}
+fit |> 
+  forecast(h=5) |> 
+  autoplot(egy_economy)
+```
+
+## Understanding ARIMA models
+
+-   If 𝑐 = 0 and 𝑑 = 0, the long-term forecasts will go to zero.
+
+-   If 𝑐 = 0 and 𝑑 = 1, the long-term forecasts will go to a non-zero constant.
+
+-   If 𝑐 = 0 and 𝑑 = 2, the long-term forecasts will follow a straight line.
+
+-   If 𝑐 ≠ 0 and 𝑑 = 0, the long-term forecasts will go to the mean of the data.
+
+-   If 𝑐 ≠ 0 and 𝑑 = 1, the long-term forecasts will follow a straight line.
+
+-   If 𝑐 ≠ 0 and 𝑑 = 2, the long-term forecasts will follow a quadratic trend.
+
+### Forecast variance and 𝑑
+
+The higher the value of 𝑑, the more rapidly the prediction intervals increase in size. For 𝑑 = 0, the long-term forecast standard deviation will go to the standard deviation of the historical data. Most importantly is understanding how ARIMA works.
+
+## SEASONAL ARIMA MODEL
+
+| ARIMA | P, d, q                         | (P, D, Q)\_m               |
+|-------|---------------------------------|----------------------------|
+|       | Non -seasonal Part of the model | Seasonal part of the model |
+
+### Note!!
+
+For monthly data, m =12, quarterly data m = 4, and for annual data m = 1.
+
+-   𝑚 = number of observations per year.
+
+-   𝑑 first differences, 𝐷 seasonal differences
+
+-   𝑝 AR lags, 𝑞 MA lags
+
+-   𝑃 seasonal AR lags, 𝑄 seasonal MA lags
+
+The first difference (d) is the difference between adjacent observations, i.e, the value for this month minus the one for the month before. On the other, the difference denoted as (D), if the difference between seasons. i.e, the value for January 2023 minus the value for January 2022 and so on. Seasonal and non-seasonal terms combine multiplicatively
+
+### ARIMA MODEL ON PBS DATA SET
+
+## Monthly Medicare Australia prescription data
+
+### Description
+
+`PBS` is a monthly `tsibble` with two values:
+
+|          |                              |
+|:---------|:-----------------------------|
+| Scripts: | Total number of scripts      |
+| Cost:    | Cost of the scripts in \$AUD |
+|          |                              |
+
+### Format
+
+Time series of class `tsibble`
+
+### Details
+
+The data is disaggregated using four keys:
+
+|             |                                                                                                                                                                                                        |
+|:------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Concession: | Concessional scripts are given to pensioners, unemployed, dependents, and other card holders                                                                                                           |
+| Type:       | Co-payments are made until an individual's script expenditure hits a threshold (\$290.00 for concession, \$1141.80 otherwise). Safety net subsidies are provided to individuals exceeding this amount. |
+| ATC1:       | Anatomical Therapeutic Chemical index (level 1)                                                                                                                                                        |
+| ATC2:       | Anatomical Therapeutic Chemical index (level 2)                                                                                                                                                        |
+|             |                                                                                                                                                                                                        |
+
+### Source
+
+Medicare Australia
+
+### View the Pharmaceutical Data
+
+```{r}
+PBS
+```
+
+### Filter the Data and Summarize (Data Preparations)
+
+```{r}
+h02 <- PBS |> 
+  filter(ATC2 == "H02") |> 
+  summarise(Cost = sum(Cost)/ 1e6)
+h02
+```
+
+```{r}
+h02 |> 
+  autoplot(Cost)+
+  labs(title = "A Times Series Plot of Pharmaceutical Budget in Australia")
+```
+
+We have an increasing trends with seasonality. As trend increases, seasonality increases as well.
+
+### Plot the Tranformed Series
+
+```{r}
+h02 |> 
+  autoplot(box_cox(Cost, lambda = .1))+
+  labs(title = "A Transformed Times Series Plot of Pharmaceutical Budget in Australia")
+```
+
+### Alternatively
+
+```{r}
+h02 |> 
+  autoplot(log(Cost))+
+  labs(title = "A Times Series Plot of Log Transformed Pharmaceutical Budget in Australia")
+```
+
+Taking the logarithm of time series data is a common practice in various fields for several reasons:
+
+1.  **Stabilizing Variance:** In many time series analyses, the variance of the data may not be constant over time, leading to heteroscedasticity. Taking the logarithm often helps stabilize the variance, making the data more suitable for statistical techniques that assume homoscedasticity. This is particularly important in financial and economic data where the variability of measurements tends to increase with their level.
+
+2.  **Linearizing Trends:** The logarithmic transformation can linearize exponential trends in the data. For example, if the underlying process exhibits exponential growth or decay, taking the logarithm converts it into a linear trend, making it easier to model and interpret. Linear models are often more convenient for analysis and forecasting.
+
+3.  **Interpretable Percentage Changes:** When dealing with economic or financial data, the logarithmic transformation converts absolute changes into percentage changes. This is especially useful when comparing the relative impact of changes over time, providing a more interpretable measure of proportional differences.
+
+4.  **Normalizing Skewed Distributions:** Logarithmic transformations are effective in normalizing positively skewed distributions. This can be beneficial when applying statistical methods that assume normality, such as linear regression.
+
+5.  **Additivity of Logarithms:** The logarithm of the product of two variables is equal to the sum of their logarithms log(ab)=log(a)+log(b)). This property can simplify multiplicative relationships in time series data, converting them into additive relationships that are easier to work with.
+
+However, it's important to note that while log-transforming time series data has its advantages, it may not be appropriate for all datasets. The choice to use logarithms should be based on the characteristics of the data and the goals of the analysis. Additionally, interpretation of results from log-transformed data should consider the transformation applied during analysis.
+
+## Note!!!
+
+Pay attention on the first two.
+
+### Difference the Series
+
+Here we use the function, differencing as shown below
+
+### Seasonal Difference
+
+```{r}
+h02 |> 
+  autoplot(log(Cost) |> 
+             difference(12))
+```
+
+We still have some sort of patterns that we can see. So we need to take another difference and this time it will be meant to stabilize the mean and variance. The first difference is to remove seasonality and the second one is to stabilize the mean and variance to make it stationary.
+
+### Stabilize the Variance by Taking the Normal Difference
+
+### Note!!
+
+It is recommended that you take the seasonal difference (quarter, m = 4, monthly, m = 12 and so on) and then take the first difference.
+
+```{r}
+h02 |> 
+  autoplot(log(Cost) |> 
+             difference(12) |> 
+             difference(1))
+```
+
+### Stationarity test (kpss function)
+
+```{r}
+h02 |> 
+  features(Cost, unitroot_kpss)
+```
+
+### Null and Alternative hypothesis
+
+| Hypotheses  | Statement                         |
+|-------------|-----------------------------------|
+| Null        | The time series is stationary     |
+| Alternative | The time series is not stationary |
+|             |                                   |
+
+From the results above, the times series is not stationary since the p-value is less than 0.05.
+
+### Test How many Differencing we need to make the series stationary
+
+```{r}
+h02 |> 
+  features(Cost, unitroot_ndiffs)
+```
+
+The results above shows that we need one differencing to make the series stationary. Now, how many seasonal differencing we need to make the series stationary
+
+```{r}
+h02 |> 
+  features(Cost, unitroot_nsdiffs)
+```
+
+Similarly, the results shows that we need only seasonal differencing to make the series stationary. Lets us now test stationarity after taking one seasonal differencing and one normal differencing.
+
+### Test with a Differenced Series
+
+```{r}
+h02 |> 
+  features(log(Cost) |> 
+             difference(12) |> 
+             difference(1),unitroot_kpss) 
+```
+
+The results shows that the series is stationary after the seasonal difference and first difference. Remember, in this case, differencing is done after series transformation.
+
+## ACF and PACF
+
+Autocorrelation Function (ACF) and Partial Autocorrelation Function (PACF) are essential tools in time series analysis, particularly in the context of building and diagnosing autoregressive integrated moving average (ARIMA) models. These models are commonly used to understand and forecast time series data.
+
+### **Autocorrelation Function (ACF):**
+
+-   **Definition:** ACF measures the correlation between a time series and its lagged values.
+
+-   **Interpretation:** Peaks in the ACF plot indicate significant relationships between the time series and its past values.
+
+-   **Use in determining parameters (p, d, q):**
+
+    -   **p (Autoregressive Order):** The lag value where the ACF plot crosses the upper confidence interval for the first time. This suggests the number of autoregressive terms needed to capture the underlying patterns.
+
+    -   **q (Moving Average Order):** The lag value where the ACF plot crosses the lower confidence interval for the first time. This indicates the number of lagged forecast errors needed to capture the moving average components.
+
+### **Partial Autocorrelation Function (PACF):**
+
+-   **Definition:** PACF measures the correlation between a time series and its lagged values, excluding the effects of intermediate lags.
+
+-   **Interpretation:** Peaks in the PACF plot indicate significant relationships between the time series and its past values, removing the influence of intervening lags.
+
+-   **Use in determining parameters (p, d, q):**
+
+    -   **p (Autoregressive Order):** The lag value where the PACF plot crosses the upper confidence interval for the first time after a sharp drop. This helps identify the number of significant autoregressive terms.
+
+    -   **q (Moving Average Order):** Similar to ACF, the lag value where the PACF plot crosses the lower confidence interval for the first time. This identifies the number of significant lagged forecast errors.
+
+### **General Guidelines:**
+
+-   **p (Autoregressive Order):** Look for the lag value at which the ACF or PACF sharply cuts off after a significant number of lags.
+
+-   **d (Differencing Order):** The differencing order is determined by the number of times the series needs to be differenced to achieve stationarity (constant mean and variance).
+
+-   **q (Moving Average Order):** Examine the lag value at which the ACF or PACF sharply cuts off after a significant number of lags.
+
+By analyzing ACF and PACF plots and identifying significant lag values, analysts can make informed decisions about the order of autoregressive, differencing, and moving average components in ARIMA models, contributing to more accurate and reliable time series forecasts.
+
+### Autocorrelation Function (ACF)
+
+```{r}
+h02 |> 
+  ACF(Cost) |> 
+  autoplot()
+```
+
+### Parctial Autocorrelation Function
+
+```{r}
+h02 |> 
+  PACF(Cost) |> 
+  autoplot()
+```
+
+### Fit the ARIMA Model
+
+```{r}
+fit <- h02 |> 
+  model(arima= ARIMA(log(Cost)))
+fit
+```
+
+### View the Model using the report() Function
+
+```{r}
+report(fit)
+```
+
+### The Model Specified
+
+```{r}
+knitr::include_graphics("sarima.png")
+```
+
+### Actual Model
+
+```{r}
+knitr::include_graphics("mod.png")
+```
+
+The given information presents the results of an ARIMA (AutoRegressive Integrated Moving Average) model with seasonal components applied to a time series of cost values after a logarithmic transformation. Here's a breakdown of the key elements:
+
+1.  **ARIMA Model Specification:**
+
+    -   The model is specified as ARIMA(2,1,0)(0,1,1)\[12\].
+
+    -   The non-seasonal part is denoted by (2,1,0), indicating two autoregressive (AR) terms, one differencing (I) order, and no moving average (MA) terms.
+
+    -   The seasonal part is denoted by (0,1,1)\[12\], indicating no seasonal autoregressive terms, one seasonal differencing order, and one seasonal moving average term with a periodicity of 12 (denoted by \[12\]).
+
+2.  **Transformation:**
+
+    -   The series "Cost" has undergone a logarithmic transformation, likely to stabilize variance and make the series more amenable to modeling.
+
+3.  **Model Coefficients:**
+
+    -   **AR Coefficients:** The autoregressive coefficients are estimated as -0.8491 for the first lag (ar1) and -0.4207 for the second lag (ar2).
+
+    -   **SMA Coefficient:** The seasonal moving average coefficient (sma1) is estimated as -0.6401.
+
+    -   **Standard Errors (s.e.):** These values represent the standard errors associated with each coefficient estimate.
+
+4.  **Model Performance:**
+
+    -   **Sigma\^2:** The estimated variance of the residuals is 0.004387.
+
+    -   **Log Likelihood:** The log-likelihood of the model is 245.39.
+
+    -   **Information Criteria:**
+
+        -   AIC (Akaike Information Criterion): -482.78
+
+        -   AICc (Corrected AIC): -482.56
+
+        -   BIC (Bayesian Information Criterion): -469.77
+
+### **Interpretation:**
+
+-   The negative AR coefficients suggest a declining impact of past observations on the current value, and the negative SMA coefficient indicates a decreasing effect of seasonal deviations on the current value.
+
+-   The small standard errors indicate a relatively precise estimation of the coefficients.
+
+-   The information criteria (AIC, AICc, BIC) provide a measure of the model's goodness of fit and complexity, with lower values indicating a better-fitting model. In this case, the AICc and BIC values are close, suggesting a parsimonious model that adequately fits the data.
+
+This ARIMA model with logarithmic transformation seems to capture the temporal patterns and seasonality in the cost time series data effectively.
+
+### Pot the Forecast
+
+```{r}
+fit|> 
+  forecast(h= "3 years")|>
+  autoplot()
+```
+
+### Plot the Forecast together with data
+
+```{r}
+fit|> 
+  forecast(h= "3 years")|>
+  autoplot(filter_index(h02, "2000 Jan" ~ .))
+```
+
+## Ensemble / Forecast Combination
+
+An ensemble model in time series forecasting is a technique that combines the predictions of multiple individual forecasting models to improve the overall accuracy and reliability of the forecast. Time series data involves patterns, trends, and seasonality that can be challenging to capture with a single forecasting model, and ensemble methods aim to mitigate the weaknesses of individual models by leveraging the strengths of different approaches.
+
+Ensemble models can be particularly effective when dealing with time series data because they can capture various aspects of the underlying patterns and reduce the risk of making poor forecasts due to the limitations of a single model. However, it's important to carefully select and fine-tune the individual models within the ensemble and consider factors like model diversity, model performance, and the specific characteristics of the time series data being forecasted.
+
+## Tourism data
+
+## Australian domestic overnight trips
+
+### Description
+
+A dataset containing the quarterly overnight trips from 1998 Q1 to 2016 Q4 across Australia.
+
+### Usage
+
+```         
+tourism 
+```
+
+### Format
+
+A tsibble with 23,408 rows and 5 variables:
+
+-   **Quarter**: Year quarter (index)
+
+-   **Region**: The tourism regions are formed through the aggregation of Statistical Local Areas (SLAs) which are defined by the various State and Territory tourism authorities according to their research and marketing needs
+
+-   **State**: States and territories of Australia
+
+-   **Purpose**: Stopover purpose of visit:
+
+    -   "Holiday"
+
+    -   "Visiting friends and relatives"
+
+    -   "Business"
+
+    -   "Other reason"
+
+-   **Trips**: Overnight trips in thousands
+
+### References
+
+[Tourism Research Australia](https://www.tra.gov.au/)
+
+### Prepare data for Forecasting
+
+```{r}
+tourism
+```
+
+### Summarized Data
+
+```{r}
+aus_tourism <- tourism |> 
+  index_by(Quarter) |> 
+  summarise(Trips = sum(Trips))
+aus_tourism
+```
+
+#### Ensemble Model
+
+```{r}
+fit <- aus_tourism |> model(
+  snaive = SNAIVE(Trips),
+  ets= ETS(Trips),
+  arima = ARIMA(Trips),
+  regression = TSLM(Trips ~ trend() + season()),
+  ) |> 
+  mutate(combination = (regression+snaive+ets+arima)/4)
+```
+
+### Augment Function
+
+```{r}
+fit|>
+augment()
+```
+
+### View the Model (Select a specific model of interest)
+
+```{r}
+fit|>
+  select(combination)|>
+  report()
+```
+
+### Forecast
+
+```{r}
+fcst <- fit |> 
+  forecast(h=12) 
+fcst
+```
+
+### View the Forecast using View() Function
+
+```{r}
+View(fcst)
+```
+
+### Plot the Forecast
+
+```{r}
+fcst|> 
+  autoplot()
+```
+
+### Plot the Forecast together with the data
+
+```{r}
+fcst|> 
+  autoplot(aus_tourism)+
+  labs(title = "Forecast of Ensembled Models")
+```
+
+### Plot the Forecast with a Section of data of interest
+
+```{r}
+fcst|> 
+  autoplot(filter_index(aus_tourism, "2014 Jan" ~ .))
+
+```
+
+## Note!!
+
+After estimating the models, when predicting, everything else goes back to the original state.

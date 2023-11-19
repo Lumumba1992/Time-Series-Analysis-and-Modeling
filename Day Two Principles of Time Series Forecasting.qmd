@@ -1,0 +1,852 @@
+---
+title: "Day Two: Principles of Time Series Forecasting"
+author: "Lumumba Wandera Victor"
+format: html
+editor: visual
+---
+
+# FIRST SESSION (10:00 AM)
+
+## Day Two: Principles of Time Series Forecasting
+
+```{r}
+library(fpp3)
+```
+
+The fpp3 library will provide with all the required packages we need for this working. The library with in-built data sets so we will not be required to download or upload the data set from our computer.
+
+### Transforming and Adjusting Time Series
+
+If the data show different variation at different levels of the series, then a transformation can be useful. There are quite a number of transformation including logarithm, square roots and cube roots. However, in this working we will work primarily with logarithmic transformation and other transformation other than cube root and square roots. Logarithms, in particular, are useful because they are more interpretable: changes in a log value are relative (percent) changes on the original scale. 4
+
+### View the Global Economy Data Set
+
+```{r}
+global_economy
+```
+
+```{r}
+global_economy |> 
+  filter(Country == "United Kingdom") |> 
+  autoplot(GDP)
+```
+
+```{r}
+global_economy |> 
+  filter(Country == "Australia") |> 
+  autoplot(GDP)
+```
+
+The two plots above follows a similar shape, how about when placed in the same plot. Consider the plot below.
+
+```{r}
+global_economy |> 
+  filter(Country %in% c("United Kingdom", "Australia")) |> 
+  autoplot(GDP)
+```
+
+From the plot above, United Kingdom has a higher GDP than that of Australia. However, this is on different scale with the two countries having different population size. Let us have a look at the per capital income as shown in the plot below.
+
+```{r}
+global_economy |> 
+  filter(Country %in% c("United Kingdom", "Australia")) |> 
+  autoplot(GDP / Population)
+```
+
+The plots are more or less moving in the same direction.
+
+However, let us try the case of China and Australia, the biggest trading partners
+
+```{r}
+global_economy |> 
+  filter(Country %in% c("China", "Australia")) |> 
+  autoplot(GDP)
+```
+
+From the plots above, China has the highest GDP as compared to Australia. How about if we scale by the population and get the per capital gdp as shown in the plot below
+
+```{r}
+global_economy |> 
+  filter(Country %in% c("China", "Australia")) |> 
+  autoplot(GDP / Population)
+```
+
+The indicates that China has the highest GDP as compared to Australia, however, it has the lowest per capital income as compared to Australia.
+
+### Adjustment to Inflation (Australian Retail Data set)
+
+#### More Information about the Australian Retail Data set
+
+## Australian retail trade turnover
+
+### Description
+
+`aus_retail` is a monthly `tsibble` with one value:
+
+|           |                                  |
+|:----------|:---------------------------------|
+| Turnover: | Retail turnover in \$Million AUD |
+|           |                                  |
+
+### Format
+
+Time series of class `tsibble`
+
+### Details
+
+Each series is uniquely identified using two keys:
+
+|           |                                     |
+|:----------|:------------------------------------|
+| State:    | The Australian state (or territory) |
+| Industry: | The industry of retail trade        |
+|           |                                     |
+
+### Source
+
+Australian Bureau of Statistics, catalogue number 8501.0, table 11.
+
+We do we have to adjust the financial data to inflation. This is because the value of money changes with time and probably decreases due to inflation. Let us look at the Australia print media industry focusing on newspaper and book retailing.
+
+```{r}
+aus_retail
+```
+
+### Check how many industries are in the data set
+
+```{r}
+aus_retail |>
+  distinct(Industry)
+```
+
+```{r}
+aus_print <- aus_retail |>
+  filter(Industry == "Newspaper and book retailing") |>
+  summarise(Turnover = sum(Turnover))
+```
+
+```{r}
+aus_print |>
+  autoplot(Turnover) +
+  ylab("Turnover (AU$ Millions)")
+```
+
+From the plot we multiplicative seasonality. The amplitude of seasonality is low in the beginning and increases over time. We also increasing trend over time upto to around 2020 and decreases thereafter. Since this is in monetary value, the value of money varies over time. For instance, the value of money in 1990 is not similar to the value of money in 2010 and 2020. Now how, can we tell that indeed the trend changed in real time. We can do this performing the transformation using CPI. But this data set has no CPI variable, here is where its important to use multiple data set. We will first extract the Australian economy from the global economy data
+
+```{r}
+aus_economy <- global_economy |>
+  filter(Country == "Australia")
+aus_economy
+```
+
+Let us first look at the aus_print data set we created earlier above
+
+```{r}
+aus_print
+```
+
+We have a bit of problem here. The data above is monthly data set, while aus_economy is annual data. We need CPI data from aus_economy which is annually. Let us mutate the aus_print data have the following
+
+```{r}
+aus_print |>
+  mutate(Year = year(Month)) 
+```
+
+### Merging Data Sets
+
+We will then use the year variable to join the two data sets, aus_print and aus_economy as shown below
+
+```{r}
+aus_print |>
+  mutate(Year = year(Month)) |>
+  left_join(aus_economy, by = "Year")
+```
+
+To have a consistent value of money when plotting CPI we will divide the Turnover values with consumer price index and create the plot as shown below
+
+```{r}
+aus_print |>
+  mutate(Year = year(Month)) |>
+  left_join(aus_economy, by = "Year") |>
+  autoplot(Turnover / CPI)
+```
+
+### Time Series Decomposition
+
+Time series decomposition is a statistical technique used to break down a time series into its component parts, typically into three main components: trend, seasonality, and noise (or residuals). The goal of decomposition is to gain a better understanding of the underlying patterns and structures within a time series, which can be useful for forecasting and analysis. This technique is commonly used in various fields, including economics, finance, epidemiology, and more.
+
+The three main components of time series decomposition are as follows:
+
+1.  Trend: The trend component represents the long-term, underlying pattern or direction in the time series. It reflects the overall movement, whether it's increasing, decreasing, or remaining relatively constant over time. Identifying the trend helps in understanding the fundamental behavior of the data.
+
+2.  Seasonality: The seasonality component captures regular, recurring patterns in the time series that occur at fixed intervals, such as daily, weekly, monthly, or yearly. Seasonality is often associated with external factors like holidays, weather, or calendar effects.
+
+3.  Cyclical: The cyclical component of a time series represents longer-term, oscillatory patterns that are not as regular as seasonality but are still distinct from the trend and are usually associated with economic, business, or other environmental cycles. Unlike seasonality, which typically has a fixed and known period (e.g., yearly or quarterly), the cyclical component can have a variable and less predictable duration. Cyclical patterns may last for several years and are often influenced by factors such as economic cycles, business cycles, or other underlying structural changes.
+
+4.  Noise (Residuals): The noise component, also called residuals, represents the random fluctuations or irregularities in the time series that are not accounted for by the trend or seasonality. It is essentially the unexplained or random variation in the data.
+
+There are different methods to perform time series decomposition, including:
+
+1.  Additive Decomposition: In this method, the time series is decomposed by adding the estimated components together: observed data = trend + seasonality + noise. It is suitable when the magnitude of seasonality remains relatively constant over time.
+
+2.  Multiplicative Decomposition: In this method, the time series is decomposed by multiplying the estimated components together: observed data = trend \* seasonality \* noise. This is used when the magnitude of seasonality changes as the series grows.
+
+Common techniques for time series decomposition include moving averages, exponential smoothing, and various statistical models like the Holt-Winters method. Many software tools and programming languages, such as R, Python, and specialized time series analysis packages, provide functions and libraries to perform decomposition and analyze time series data.
+
+Once a time series has been decomposed, the individual components can be analyzed separately, which may provide insights into the underlying patterns and inform forecasting and decision-making processes. Additionally, it can help in identifying and addressing any anomalies or outliers in the data, improving the accuracy of forecasts and models.
+
+Let us now look at US employment data
+
+```{r}
+us_employment
+```
+
+### Filter Tittle to be Retail Trade
+
+```{r}
+us_employment |>
+  filter(Title == "Retail Trade")
+```
+
+### Make the Plot of the Data
+
+```{r}
+us_employment |>
+  filter(Title == "Retail Trade") |>
+  autoplot(Employed)
+```
+
+### Extract the Month to Start from 1990 Jan
+
+```{r}
+us_employment |>
+  filter(Month >= yearmonth("1990 Jan"), Title == "Retail Trade") |>
+  autoplot(Employed)
+```
+
+In the plot above, we can see additive seasonality, however, the entire data set, we had slightly multiplicative seasonality. Additionally, we have cyclical component in the plot as well as trend. Now, how does seasonality in this data looks like.
+
+### Seasonality Plot
+
+```{r}
+us_employment |>
+  filter(Month >= yearmonth("1990 Jan"), Title == "Retail Trade") |>
+  gg_season(Employed)
+```
+
+The peak is at the end of the year in December and the minimum might be in February as seen in the plot. Why is minimum employment in February. Let us to make this plot on aus_print to understand this much better
+
+```{r}
+aus_print |>
+  gg_season(Turnover)
+```
+
+From the plot above, there is uncharacteristic behavior of Turnover dropping in February. This is attributed to the fact that we only have 28 or 29 days in February. Now lets find a way we transform this plot. We can do this by dividing with the number of days in each particular month.
+
+```{r}
+aus_print |>
+  gg_season(Turnover / days_in_month(Month))
+```
+
+You can now see that February did not record the lowest Turnover if we divide by the number of days in a month. In other, there were more sales in February as compared to other months. This is average Turnover, which is high in February as compared to January and March.
+
+Let us get back to our previous plot on number of employment (seasonal plot)
+
+```{r}
+us_employment |>
+  filter(Month >= yearmonth("1990 Jan"), Title == "Retail Trade") |>
+  gg_season(Employed)
+```
+
+The reason why we have plots on top of each other is because we have an increasing trend in our data set. It is therefore important to remove the trend and just focus on seasonality, and to do this, we can use STL decomposition.
+
+The STL (Seasonal and Trend decomposition using Loess) method is a widely used and robust technique for decomposing time series data into its three main components: seasonal, trend, and remainder (residuals). STL is particularly effective when dealing with time series data that exhibit complex or non-linear patterns. This method was introduced by Cleveland et al. in the late 1990s and is implemented in various statistical software packages.
+
+Here's a brief overview of how the STL method works:
+
+1.  **Seasonal Component:** STL estimates the seasonal component by applying local regression (Loess smoothing) to the time series. Local regression fits a smooth curve to the data by considering data points in the vicinity of each data point. This flexible approach can handle irregular and non-linear seasonal patterns. The seasonal component represents the regular, repeating patterns in the data.
+
+2.  **Trend Component:** After removing the seasonal component, STL estimates the trend component using another round of Loess smoothing. This helps identify the long-term, underlying behavior of the time series, which may include growth or decline.
+
+3.  **Residuals (Remainder):** The remainder component, often referred to as residuals, represents the unexplained variation in the time series after removing the seasonal and trend components. It includes any noise, irregularities, or random fluctuations in the data.
+
+```{r}
+dcmp <- us_employment |>
+  filter(Month >= yearmonth("1990 Jan"), Title == "Retail Trade") |>
+  model(STL(Employed))
+dcmp 
+```
+
+### Extract the Components using Component Function
+
+```{r}
+dcmp |>
+  components()
+```
+
+The output above shows that our time series (Employed) was decomposed into three components, names trend, season_year and remainder(residuals). Most importantly, remember we did additive decomposition.
+
+### Plot the Components
+
+```{r}
+dcmp |>
+  components() |>
+  autoplot(Employed)
+```
+
+### Seasonality of the season_year
+
+I want to better understanding of what is happening in the seasonal component.
+
+```{r}
+dcmp |>
+  components() |>
+  gg_season(season_year)
+```
+
+From the plot, we can see that in Sepetember, we see a change in the seasonal shape (decrease in the seasonal shape). Similarly, in December, we have a decrease in the seasonal shape.
+
+### Seasonal Sub Series Plot
+
+```{r}
+dcmp |>
+  components() |>
+  gg_subseries(season_year)
+```
+
+From the September seasonality has been decreasing. The same is seen in December
+
+```{r}
+us_employment |>
+  filter(Month >= yearmonth("1990 Jan"), Title == "Retail Trade") |>
+  autoplot(Employed)
+```
+
+### Decompose the Series
+
+```{r}
+components(dcmp) |>
+  autoplot(Employed)
+```
+
+#### Smooth Trendline Superimposed on the Original Series
+
+```{r}
+components(dcmp) |>
+  as_tsibble() |>
+  autoplot(Employed)+
+  geom_line(aes(y = trend), colour = "steelblue", linewidth = 2)
+```
+
+#### Seasonal Adjustment Superimposed on the Original Series
+
+```{r}
+components(dcmp) |>
+  as_tsibble() |>
+  autoplot(Employed) +
+  geom_line(aes(y = season_adjust), colour = "steelblue", linewidth = 1.5)
+```
+
+You can see some random noise added to the trend superimposed on the original series. You can see the line is not smooth as the previous. The previous was a smooth trend line. Adding noise to the trend line, we get the plot above. The plot above can as well be created as shown below and we will get identical results
+
+#### Approach one
+
+```{r}
+components(dcmp) |>
+  as_tsibble() |>
+  autoplot(Employed) +
+  geom_line(aes(y = trend + remainder), colour = "steelblue", linewidth = 1.5)
+```
+
+#### Approach two
+
+```{r}
+components(dcmp) |>
+  as_tsibble() |>
+  autoplot(Employed) +
+  geom_line(aes(y = Employed - season_year), colour = "steelblue", linewidth = 1.5)
+```
+
+There are some parameters we might want to play around with. The decomposition we just did happens to work quite well where the trend is kept in trend components and seasonality kept in seasonal component. But that is not always the case, you might have to adjust the size of the window to get smoother or more flexible results. To do this, we use the command below. (trend(window =15) means 15 months. What this means is that we estimate the trend between 15 months and keep shifting by one month. We can also add season (window = "periodic") or season (window = inf), when we use window = inf, what that means is that we will use a single window for the entire period and that means that seasonality does not change over time. On the other hand, if window = "periodic", that the windows varies across periods. If we have outliers in our data set, we can set robust = TRUE.
+
+```{r}
+dcmp <- us_employment |>
+  filter(Month >= yearmonth("1990 Jan"), Title == "Retail Trade") |>
+  model(STL(Employed ~ trend(window = 15) + season(window = "periodic"),
+            robust = FALSE))
+```
+
+```{r}
+dcmp |>
+  components() |>
+  autoplot()
+```
+
+### Note!!
+
+If you have multiple time series as we have seen before, we can do a decomposition on all of these time series.
+
+# SECOND SESSION (11:45 AM)
+
+## Computing and Visualizing Features
+
+When dealing with many time series, we visualize the plots using features. Feature is specifically a one unit summary of the time series. We will no longer have the times series but rather summary and descriptive of time series. This give the overall behavior of large collection of time series. Using features requires the use of the feast package
+
+### Main type of Features in Time Series
+
+1.  STL Features
+
+2.  Dimension Reduction for Features
+
+In general we will be testing how strong is trend or seasonality. Therefore we will have
+
+-   STL Decomposition
+
+-   Seasonal Strength
+
+-   Trend Strengh
+
+### Tourism data set
+
+```{r}
+tourism
+```
+
+### Manipulate the data and Plot
+
+```{r}
+tourism |>
+  filter(Purpose == "Holiday") |>
+  summarise(Trips = sum(Trips))
+```
+
+### Plot
+
+```{r}
+tourism |>
+  filter(Purpose == "Holiday") |>
+  summarise(Trips = sum(Trips)) |>
+  autoplot()
+```
+
+### Features
+
+```{r}
+tourism |>
+  filter(Purpose == "Holiday") |>
+  summarise(Trips = sum(Trips)) |>
+  features(Trips, feat_stl)
+```
+
+From the results above, the trend strength is approximately 0.825057 and the annual seasonal strength is approximately 0.9164. The seasonal peak occured in the first quarter and the seasonal trough occurred in the third quarter.
+
+Let us filter for holiday and get the features
+
+```{r}
+tourism |>
+  filter(Purpose == "Holiday")
+```
+
+We have 76 time series as seen above. Let us now calculate features for the times series above.
+
+```{r}
+tourism |>
+  filter(Purpose == "Holiday") |>
+  #summarise(Trips = sum(Trips)) |>
+  features(Trips, feat_stl)
+```
+
+### Scatter Plot of Seasonal Strength and Trend Strength
+
+```{r}
+tourism |>
+  filter(Purpose == "Holiday") |>
+  #summarise(Trips = sum(Trips)) |>
+  features(Trips, feat_stl) |>
+  ggplot(aes(x = trend_strength, y = seasonal_strength_year)) +
+  geom_point()
+```
+
+The plot is the summary of trend and seasonal strength in the data set. They look like points yes, but each of the points represents an entire time series in our data set. Let us now filter the strend strength to be less than 0.3.
+
+```{r}
+tourism |>
+  filter(Purpose == "Holiday") |>
+  #summarise(Trips = sum(Trips)) |>
+  features(Trips, feat_stl) |>
+  filter(trend_strength < 0.3)
+```
+
+The output above is for four time series that have trend strength of less than 0.3, we may be interested in that one time series that has trend of less than 0.3 but also has seasonal strength of less than 0.25 and that is time series relating to Barosa region in the state of South Australia
+
+```{r}
+tourism |>
+  filter(Region == "Barossa", Purpose == "Holiday") |>
+  autoplot(Trips)
+```
+
+We cannot go on selecting each times one at a time for all the 76, however, we can just plot the features and look at the summary.
+
+```{r}
+tourism |>
+  filter(Purpose == "Holiday") |>
+  #summarise(Trips = sum(Trips)) |>
+  features(Trips, feat_stl) |>
+  ggplot(aes(x = trend_strength, y = seasonal_strength_year)) +
+  geom_point()
+```
+
+How about that one point on the top right corner, what time series is that, it has trend strength of more than 0.8 and seasonal strength of more than 0.75.
+
+```{r}
+tourism_trendy_holidays <- tourism |>
+  filter(Purpose == "Holiday") |>
+  #summarise(Trips = sum(Trips)) |>
+  features(Trips, feat_stl) |>
+  filter(trend_strength > 0.8, seasonal_strength_year > 0.75)
+```
+
+```{r}
+tourism_trendy_holidays
+```
+
+This is a time series for Australia's South West region from Western Australia. Let us now filter and make the time series plot
+
+```{r}
+tourism |>
+  filter(Region == "Australia's South West", Purpose == "Holiday") |>
+  autoplot(Trips)
+```
+
+Feature plotting is the best way of understanding hundered of time series in a single plot
+
+```{r}
+tourism |>
+  #right_join(tourism_trendy_holidays, by = c("Region", "State", "Purpose"))
+  semi_join(tourism_trendy_holidays, by = key_vars(tourism)) |>
+  autoplot(Trips)
+```
+
+#### Get the Features for the Entire Data set with 304 Time Series
+
+```{r}
+tourism
+```
+
+#### Features
+
+```{r}
+tourism |>
+  features(Trips, feat_stl)
+```
+
+#### Plot the Features
+
+```{r}
+tourism |>
+  features(Trips, feat_stl) |>
+  ggplot(aes(x = trend_strength, seasonal_strength_year)) +
+  geom_point()
+```
+
+#### Color by Purpose
+
+```{r}
+tourism |> 
+  features(Trips, feat_stl) |>
+  ggplot(aes(x = trend_strength, seasonal_strength_year)) +
+  geom_point(aes(colour = Purpose))
+```
+
+#### Facet by States
+
+```{r}
+tourism |> 
+  features(Trips, feat_stl) |>
+  ggplot(aes(x = trend_strength, seasonal_strength_year)) +
+  geom_point(aes(colour = Purpose))+
+  facet_wrap(vars(State))
+```
+
+The is something interesting in the plot. The seasonal strength is very high for holidays purpose. The reason being many people travel for holidays purpose seasonally. On the other hand, people travel for business purpose any time of the year, whenever they needed. What this means is that business travel is not as seasonal as holiday travels. Now, when modeling holidays times sesries, we might need to include the seasonal component, however, when modeling business times series, we may not neet the seasonal component.
+
+## Note!!
+
+The strength of the trend in the STL decomposition comprise both trend and cyclical components. This is because we cannot separate the trend and cyclical component in the STL decomposition.
+
+#### Filter Holiday and Add Color to Distinguish States
+
+```{r}
+tourism |> 
+  features(Trips, feat_stl) |>
+  ggplot(aes(x = trend_strength, seasonal_strength_year)) +
+  geom_point(aes(colour = State)) 
+```
+
+Northern Territory and Victoria times series are a bit seasonal as compared to other times series . Let us filter Holiday purpose of travel.
+
+```{r}
+tourism |> 
+  filter(Purpose == "Holiday")|>
+  features(Trips, feat_stl) |>
+  ggplot(aes(x = trend_strength, seasonal_strength_year)) +
+  geom_point(aes(colour = State)) 
+```
+
+In Victoria, there are some regions which are visited seasonally while others are not. So, in Victoria, we have both high and low seasonality.
+
+### Group by State and Calculate the Total Trips
+
+```{r}
+tourism |>
+  filter(Purpose == "Holiday") |>
+  group_by(State) |>
+  summarise(Trips = sum(Trips)) |>
+  features(Trips, feat_stl) |>
+  ggplot(aes(x = trend_strength, seasonal_strength_year)) +
+  geom_point(aes(colour = State))
+```
+
+From the plot above, Victoria is the most seasonal time series and also very trended. The ACT times series is less seasonal and less trendy because no one visits ACT, but only government officials. ACT is only for government, no goes to ACT for whatever purpose of travel.
+
+### Find the Most Seasonal Series
+
+```{r}
+most_seasonal <- tourism |>
+  features(Trips, feat_stl) |>
+  filter(seasonal_strength_year > 0.8)
+most_seasonal
+```
+
+### Filter the Region of Interest and Purpose
+
+```{r}
+tourism |>
+  filter(Region == "Australia's South West", Purpose == "Holiday")|>
+  autoplot(Trips)
+```
+
+```{r}
+most_seasonal <- tourism |>
+  features(Trips, feat_stl) |>
+  filter(seasonal_strength_year == max(seasonal_strength_year))
+most_seasonal
+```
+
+### Get the Most Seasonal Series
+
+```{r}
+tourism |>
+  right_join(most_seasonal, by = c("State", "Region", "Purpose")) 
+```
+
+### Alternatively, we right join as shown below.
+
+```{r}
+tourism |>
+  right_join(most_seasonal, by = key_vars(tourism))
+```
+
+### Plot the Most Seasonal Series
+
+```{r}
+tourism |>
+  right_join(most_seasonal, by = c("State", "Region", "Purpose")) |>
+  ggplot(aes(x = Quarter, y = Trips)) +
+  geom_line() + facet_grid(vars(State, Region, Purpose))
+```
+
+We can now see that the snowy mountains in the New South Wales experiences more seasonal visits, for holidays purpose.
+
+#### Disadvantages of STL Decomposition
+
+### Join the data using semi join and craete the plot for the most trendy series
+
+```{r}
+tourism |>
+  semi_join(tourism_trendy_holidays, by = key_vars(tourism)) |>
+  autoplot(Trips)
+```
+
+### Plot the ACF of the most Trendy Series
+
+```{r}
+tourism |>
+  semi_join(tourism_trendy_holidays, by = key_vars(tourism)) |>
+  ACF(Trips) |>
+  autoplot()
+```
+
+```{r}
+tourism |>
+  semi_join(tourism_trendy_holidays, by = key_vars(tourism)) |>
+  features(Trips, feat_acf)
+```
+
+The first lag (acf1) for the Australia's South Wales in the Western Australia state is 0.322. The acf10 is the sum of the first ten lags. The seasonal first lag is 0.7767379. This information certain information about time series.
+
+### Dimension Reduction for Features
+
+Dimension reduction for features is a data preprocessing technique used in machine learning and data analysis to reduce the number of features (variables) in a dataset while retaining as much useful information as possible. This is done to address several issues, including reducing computational complexity, mitigating the curse of dimensionality, and improving model performance. Two common techniques for dimension reduction are Principal Component Analysis (PCA) and Feature Selection.
+
+1.  **Principal Component Analysis (PCA):**
+
+    -   PCA is a dimension reduction technique that transforms the original features into a new set of orthogonal (uncorrelated) features called principal components.
+
+    -   These principal components are ordered by the amount of variance they explain in the data. The first few principal components capture most of the variability in the data, allowing for dimension reduction.
+
+    -   PCA is particularly useful when dealing with high-dimensional data or when there is multicollinearity (high correlation) among features.
+
+    **Advantages of PCA:**
+
+    -   Reduces dimensionality while preserving as much variance as possible.
+
+    -   Can help in removing noise and reducing the computational burden for machine learning algorithms.
+
+    -   Reveals latent patterns or structure in the data.
+
+    **Disadvantages of PCA:**
+
+    -   Principal components may not have meaningful interpretations in the original feature space.
+
+    -   Loss of interpretability when original feature meanings are not retained.
+
+    -   The choice of the number of components can be subjective and requires domain knowledge.
+
+2.  **Feature Selection:**
+
+    -   Feature selection involves choosing a subset of the original features while discarding the rest. The goal is to retain the most informative and relevant features.
+
+    -   Various techniques are used for feature selection, including filter methods (e.g., based on statistical tests), wrapper methods (e.g., using model performance), and embedded methods (e.g., feature importance from tree-based models).
+
+    **Advantages of Feature Selection:**
+
+    -   Retains the interpretability of the selected features.
+
+    -   Can improve model performance by focusing on the most relevant information.
+
+    -   Reduces the risk of overfitting.
+
+    **Disadvantages of Feature Selection:**
+
+    -   May not capture complex relationships between features.
+
+    -   Requires domain expertise to determine which features to select.
+
+    -   Feature selection methods can be computationally intensive when dealing with a large number of features.
+
+The choice between PCA and feature selection depends on the specific characteristics of your data and the goals of your analysis or modeling. In some cases, a combination of both techniques may be appropriate.
+
+It's essential to consider the trade-offs, interpretability, and the impact on the overall goal (e.g., model performance) when deciding which dimension reduction technique to use. Additionally, the choice of the right technique may require experimentation and domain knowledge to achieve the best results for your particular dataset and problem.
+
+### Check the Existing Features
+
+We will use the dimension reduction to combine feature into useeful compressed information . We will get all these features from feasts package.
+
+```{r}
+tourism_feat <- tourism |>
+  features(Trips, feature_set(pkgs = "feasts"))
+```
+
+### View the Features
+
+```{r}
+tourism_feat
+```
+
+We have quite a number of features, we cannot visualize all the feature, and thus what we will do is to apply principal component for dimension reduction.
+
+### Definition
+
+Principal components based on all features from the feasts package. Principal component is a way we can combine multiple columns and reduce the dimension. In other words, instead of having 48 different features, we can reduce the 48 different feature by looking at the most important information and combine them together. In principal component, we do not interprete the results in terms of trendy or seasonal series, but rather principal component is more or less like clustering. So we can visualize these principal component and view the clusters. In the next line of code we will remove the key variables as shown below.
+
+```{r}
+tourism_pc <- tourism_feat |>
+  select(-Region, -State, -Purpose) |>
+  prcomp(scale = TRUE)
+tourism_pc
+```
+
+From the output above, we have 48 principal components. These 48 principal components are linear combination of all the 48 we had initially. Actually, we do not care about all the other PCs, we only care about the first two or three PCs. We will add another argument to bring back the principal component and features we had earlier.
+
+```{r}
+tourism_pc <- tourism_feat |>
+  select(-Region, -State, -Purpose) |>
+  prcomp(scale = TRUE) |>
+  broom::augment(tourism_feat)
+tourism_pc
+```
+
+In the output above, the first three are key variables, the next 48 variables are features and the last 48 are my principal components.
+
+### Visualize the Components
+
+```{r}
+tourism_pc |>
+  ggplot(aes(x = .fittedPC1, y = .fittedPC2))+
+  geom_point()+
+  labs(title = "Principal Component")
+```
+
+The plot is not really meaningful because we do not know what PC1 really is and what PC2 really is.
+
+#### Add Colors to Distinguish Purpose
+
+```{r}
+tourism_pc |>
+  ggplot(aes(x = .fittedPC1, y = .fittedPC2)) +
+  geom_point(aes(colour = Purpose))
+```
+
+What these principal component did was that, it separated Holidays purpose of travel from all the other purpose of travel.
+
+#### Add Colors to Distinguish States
+
+```{r}
+tourism_pc |>
+  ggplot(aes(x = .fittedPC1, y = .fittedPC2)) +
+  geom_point(aes(colour = State))
+```
+
+```{r}
+tourism_outliers <- tourism_pc |>
+  filter(.fittedPC1 > 10)
+```
+
+### Semi_join to filter the data based on matching rows
+
+```{r}
+tourism |>
+  semi_join(tourism_outliers, by = key_vars(tourism)) |>
+  autoplot(Trips)
+```
+
+### Right join keeps all right data rows, and adds left data rows that match
+
+```{r}
+tourism |>
+  right_join(tourism_outliers, by = key_vars(tourism)) |>
+  autoplot(Trips)
+```
+
+```{r}
+tourism_pc |>
+  ggplot(aes(x = .fittedPC1, y = .fittedPC2)) +
+  geom_point(data = tourism_pc |> filter(.fittedPC1 > 10), size = 3) +
+  geom_point(aes(colour = Purpose))
+```
+
+Basically, principal component is used in finding clusters of similar time series and we can therefore develop models for specific clusters.
+
+### Scree plots
+
+The screeplot helps to identify how many principal components are useful.
+
+```{r}
+tourism_feat |> 
+  select(-Region, -State, -Purpose) |>
+  prcomp(scale = TRUE)|>
+  screeplot()
+```
+
+From the plot above, we can see that see that the first two principal components are the most useful principal components since they a significant information we need from our features.

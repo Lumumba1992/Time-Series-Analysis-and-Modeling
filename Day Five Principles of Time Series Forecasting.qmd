@@ -1,0 +1,850 @@
+---
+title: "Day Five: Principles of Time Series Forecasting"
+author: "Lumumba Wandera Victor"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+format: docx
+editor: visual
+---
+
+# Set up Rstudio
+
+```{r}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE,comment = NA, message=FALSE,
+                      fig.height=4, fig.width=6)
+```
+
+## FIRST SESSION: 10:00 AM TO 11:30 AM
+
+## Day Five: Principles of Time Series Forecasting
+
+### Basic Training and Test Accuracy
+
+#### Evaluating forecast accuracy
+
+In order to evaluate the performance of a forecasting model, we compute its forecast accuracy. Forecast accuracy is compared by measuring errors based on the test set. Ideally it should allow comparing benefits from improved accuracy with the cost of obtaining the improvement.
+
+We should be choosing forecast models that lead to better business decisions
+
+▶ least staffing costs, least emission, highest service level, least stock-out, least inventory, fastest response, least change in planing, for example.
+
+However, this is not always easy to obtain, therefore we might simply use methods that provide the most accurate forecast.
+
+### In-sample (training) vs. out-of-sample (test)
+
+Fitting and its residual are not a reliable indication of forecast accuracy. Besides, a model which fits the training data well will not necessarily forecast well. A perfect fit can always be obtained by using a model with enough parameters. On the other hand, over-fitting a model to data is just as bad as failing to identify a systematic pattern in the data. In testing the accuracy of the model, we mimic the real life situation and pretend that we don't know some part of data (new data). Remember tt must not be used for any aspect of model training. Forecast accuracy is computed only based on the test set
+
+### Evaluating point forecast accuracy
+
+#### Load the following libraries
+
+```{r}
+library(fpp3)
+library(ggdist)
+library(tidyverse)
+```
+
+### Load Tourism Data
+
+## Australian domestic overnight trips
+
+### Description
+
+A dataset containing the quarterly overnight trips from 1998 Q1 to 2016 Q4 across Australia.
+
+### Usage
+
+```         
+tourism 
+```
+
+### Format
+
+A tsibble with 23,408 rows and 5 variables:
+
+-   **Quarter**: Year quarter (index)
+
+-   **Region**: The tourism regions are formed through the aggregation of Statistical Local Areas (SLAs) which are defined by the various State and Territory tourism authorities according to their research and marketing needs
+
+-   **State**: States and territories of Australia
+
+-   **Purpose**: Stopover purpose of visit:
+
+    -   "Holiday"
+
+    -   "Visiting friends and relatives"
+
+    -   "Business"
+
+    -   "Other reason"
+
+-   **Trips**: Overnight trips in thousands
+
+### References
+
+[Tourism Research Australia](https://www.tra.gov.au/)
+
+### View the data
+
+```{r}
+tourism
+```
+
+### Index by Time and Summarize Total Trips
+
+```{r}
+aus_tourism <- tourism |> 
+  index_by(Quarter) |> 
+  summarise(Trips = sum(Trips))
+aus_tourism
+```
+
+### Fit the Various Models
+
+```{r}
+fit <- aus_tourism |>
+  model(average = MEAN(Trips),
+        naive = NAIVE(Trips),
+        snaiev = SNAIVE(Trips),
+        regression = TSLM(Trips),
+        automatic_ets = ETS(Trips),
+        automatc_arima = ARIMA(Trips)
+        )
+
+```
+
+### Plot the Forecast (pay attention on regression)
+
+```{r}
+fit |> 
+  forecast(h = 4)|>
+  autoplot()
+```
+
+### Estimate the Forecast Model and add trend and seasonal component to it
+
+```{r}
+fit <- aus_tourism |>
+  model(average = MEAN(Trips),
+        naive = NAIVE(Trips),
+        snaiev = SNAIVE(Trips),
+        regression = TSLM(Trips ~ trend() + season()),
+        automatic_ets = ETS(Trips),
+        automatc_arima = ARIMA(Trips)
+        )
+```
+
+### Plot the Forecast
+
+```{r}
+fit |> 
+  forecast(h = 4)|>
+  autoplot()
+```
+
+### Plot the Forecast with the data
+
+```{r}
+fit |> 
+  forecast(h = 4)|>
+  autoplot(filter_index(aus_tourism, "2010 Q1"~.))
+```
+
+### Various Function to View the Estimated Mode include the Following
+
+1.  tidy()
+
+2.  glance()
+
+3.  report()
+
+4.  components()
+
+5.  augment()
+
+#### Apply the Function to Navigate the Model
+
+#### tidy() function
+
+```{r}
+fit |> 
+  select(automatic_ets) |> 
+  tidy()
+```
+
+#### glance() function
+
+```{r}
+fit |> 
+  select(automatic_ets) |> 
+  glance()
+```
+
+```{r}
+fit |> 
+  select(automatic_ets) |> 
+  report()
+```
+
+The output above outlines a time series forecasting model under the ETS(A,A,A) framework, representing an Exponential Smoothing State Space model with additive errors and additive trend and seasonality components. The model is characterized by three smoothing parameters: alpha, beta, and gamma, set to 0.4495675, 0.04450178, and 0.0001000075, respectively. These parameters govern the weights assigned to the current observation, trend, and seasonal components during the forecasting process.
+
+The initial states of the model include level (l), trend (b), and seasonal (s) components, with specific values provided for each. These initial states influence the starting point of the forecasting process. Notably, the sigma\^2 value of 699901.4 represents the estimated variance of the error term in the model.
+
+The output has the three model evaluation metrics: AIC (Akaike Information Criterion), AICc (corrected AIC), and BIC (Bayesian Information Criterion). These metrics serve as measures of the model's goodness of fit, with lower values indicating a better fit. In this case, the AIC, AICc, and BIC values are 1436.829, 1439.400, and 1458.267, respectively. Model selection would involve choosing the model with the lowest value among these criteria. The provided values suggest a reasonably good fit, but further comparison with alternative models and consideration of the specific context of the time series data would be essential for a comprehensive interpretation and decision-making.
+
+The coefficients and parameters in the output pertain to an Exponential Smoothing State Space model with additive errors, additive trend, and additive seasonality (ETS(A,A,A)). Let's break down the interpretation of each:
+
+1.  **Smoothing Parameters:**
+
+    -   **Alpha (α):** Represents the smoothing parameter for the level (l) component. It determines the weight given to the most recent observation when updating the level.
+
+    -   **Beta (β):** The smoothing parameter for the trend (b) component. It controls the weight assigned to the most recent trend when updating.
+
+    -   **Gamma (γ):** The smoothing parameter for the seasonal (s) component. It governs the weight assigned to the most recent seasonal observation when updating the seasonal component.
+
+2.  **Initial States:**
+
+    -   **l\[0\]:** Initial level of the time series.
+
+    -   **b\[0\]:** Initial trend of the time series.
+
+    -   **s\[0\]:** Initial seasonal component.
+
+    -   **s\[-1\], s\[-2\], s\[-3\]:** Initial seasonal components for the previous three seasons.
+
+3.  **Sigma\^2:**
+
+    -   **Sigma\^2:** Represents the estimated variance of the error term in the model. In this context, it is 699901.4, indicating the variability or volatility of the residuals.
+
+4.  **Evaluation Metrics:**
+
+    -   **AIC (Akaike Information Criterion):** A measure of the model's goodness of fit, balancing the trade-off between accuracy and complexity. Lower AIC values suggest a better-fitting model.
+
+    -   **AICc (Corrected AIC):** A modification of AIC for small sample sizes, penalizing the model for additional parameters.
+
+    -   **BIC (Bayesian Information Criterion):** Similar to AIC but with a stronger penalty for model complexity. Like AIC, lower BIC values indicate a better-fitting model.
+
+In summary, these parameters and coefficients collectively define the structure of the ETS(A,A,A) model and provide information on how the model captures and updates the level, trend, and seasonality of the time series data. The smoothing parameters control the influence of recent observations on these components, while the initial states set the starting values. The evaluation metrics help assess the model's overall fit, with lower values indicating a more parsimonious and effective model.
+
+#### component() function
+
+```{r}
+fit |> 
+  select(automatic_ets) |> 
+  components()
+```
+
+#### Augment() Function
+
+```{r}
+fit |> 
+  select(automatic_ets) |> 
+  augment()
+```
+
+#### Use the Model to Forecast the Next Four Seasons (Four quarters ahead)
+
+```{r}
+fcst <- 
+  fit |> 
+  forecast(h = 4)
+fcst
+```
+
+The output above shows the point focus and the distribution of the forecast for each model. We have the normal distribution with mean and variance as indicated. This is kind of focus assumes that residuals are following a normal distribution. If we assume that the residuals are not following normal distribution, then we have to use bootstrapping, as shown below.
+
+### Bootstrap
+
+```{r}
+fcst1 <-  fit |> 
+  forecast(h = 4, bootstrap = TRUE)
+fcst1
+```
+
+From the results above, the bootstrap method takes 5000 samples to make the prediction.
+
+#### View the Forecast for the Automatic ETS
+
+```{r}
+fcst_ets <- 
+  fcst |> 
+  filter(.model == "automatic_ets")
+fcst_ets
+```
+
+### Plot the Forecast
+
+```{r}
+fcst_ets|>
+  autoplot()
+```
+
+### Plot the Forecast together with the data
+
+```{r}
+fcst_ets|>
+  autoplot(aus_tourism)
+```
+
+### Plot the Distribution of the Forecast for all the models
+
+```{r}
+ggplot(data = fcst, mapping = aes(x = Quarter, ydist = Trips))+
+  stat_halfeye()
+```
+
+As you can see, the plot above shows the distribution of the focus for various models and you can see, the distribution has several peaks indicating various models. Let us add colors to distinguish distribution of the various forecast
+
+```{r}
+ggplot(data = fcst, mapping = aes(x = Quarter, ydist = Trips, fill = .model))+
+  stat_halfeye()
+```
+
+We can now see the forecast distribution for various models. Let us now view the distribution with overlapping view.
+
+```{r}
+ggplot(data = fcst, mapping = aes(x = Quarter, ydist = Trips, fill = as.factor(.model)))+
+  stat_halfeye(alpha = 0.6)
+```
+
+From the plot above, ARIMA and ETS models proves to be the best. The distribution is very narrow, showing higher certainty in our forecast.
+
+### Extract for ETS and Plot
+
+```{r}
+fcst_ets <- 
+  fcst |> 
+  filter(.model == "automatic_ets")
+fcst_ets
+```
+
+```{r}
+ggplot(data = fcst_ets, mapping = aes(x = Quarter, ydist = Trips, fill = .model))+
+  stat_halfeye(alpha =.5)
+```
+
+### Extract ARIMA Forecast and Plot
+
+```{r}
+fcst_arima <- 
+  fcst |> 
+  filter(.model == "automatc_arima")
+fcst_arima
+```
+
+```{r}
+ggplot(data = fcst_arima, mapping = aes(x = Quarter, ydist = Trips, fill = .model))+
+  stat_halfeye(alpha = .5)
+```
+
+From the plot above, we can get the distribution interval and the probabilities as well.
+
+```{r}
+ggplot(data = fcst_ets, mapping = aes(x = Quarter, ydist = Trips))+
+  stat_halfeye(alpha = .4)+
+  autolayer(filter_index(aus_tourism, "2010 Q1"~.))
+```
+
+### get the fitted ets and plot with the data
+
+```{r}
+fitted_ets <- fit|>
+  select(automatic_ets)|>
+  augment()
+fitted_ets
+```
+
+### Plot the Fitted and the Data
+
+```{r}
+fitted_ets |>
+  ggplot(aes(x = Quarter))+
+  geom_line(aes(y = Trips, color = "Data"))+
+  geom_line(aes(y = .fitted, color = "Fitted"))
+```
+
+```{r}
+ggplot(data = fcst_ets, mapping = aes(x = Quarter, ydist = Trips))+
+  stat_halfeye(alpha = .4)+
+  geom_line(aes(y = .fitted, colour ="Fitted"), data = filter_index(fitted_ets, "2010 Q1" ~ .))+
+  geom_line(aes(y = Trips, colour ="Data"),data = filter_index(fitted_ets, "2010 Q1" ~ .))
+```
+
+## Alternatively
+
+```{r}
+ggplot(data = fcst_ets, mapping = aes(x = Quarter, ydist = Trips))+
+  stat_halfeye(alpha = .5)+
+  geom_line(aes(y = .fitted, color = "Fitted"),data = filter_index(fitted_ets, "2014 Q1"~.))+
+  geom_line(aes(y = Trips, color = "Data"), data = filter_index(fitted_ets, "2014 Q1"~.))+
+  autolayer(filter_index(aus_tourism, "2014 Q1"~.))
+```
+
+### Basic accuracy- split to Test and Train
+
+### Testing dataset
+
+```{r}
+forecast_horizon <- 4
+test <- aus_tourism |>
+  filter_index(as.character(max(aus_tourism$Quarter)-forecast_horizon +1) ~ .)
+test
+```
+
+### Training data set
+
+```{r}
+
+train <- aus_tourism |> filter_index(. ~ as.character(max(aus_tourism$Quarter)-forecast_horizon))
+train
+```
+
+Our test goes from the beginning of the times series to 2016 quarter 4. On the other hand, the test data takes the last four observation of the series, that is, 2017 Q1 to 2017 Q4. We have managed to split our data into test and train data set.
+
+From the code above, we are creating a training and test sets for forecasting. From the code, we are filtering the data to create separate sets for training and testing, likely for a time series forecasting model.
+
+Here's a breakdown of your code:
+
+1.  **`forecast_horizon <- 4`**: We are defining a variable **`forecast_horizon`** with a value of 4. This variable is representing the number of periods into the future you want to forecast.
+
+2.  **`test <- aus_tourism |> filter_index(as.character(max(aus_tourism$Quarter) - forecast_horizon + 1) ~ .)`**: We are creating the test set. Again we are filtering the **`aus_tourism`** data based on the index (Quarter) to select observations for the test set. The filter condition used in this code helps us select data points starting from the quarter which is **`forecast_horizon`** quarters before the maximum quarter.
+
+3.  **`train <- aus_tourism |> filter_index(. ~ as.character(max(aus_tourism$Quarter) - forecast_horizon))`**: In this code, we are creating the training set. Similar to the test set, where we are filtering the **`aus_tourism`** data, but this time we are selecting data points up to the quarter which is **`forecast_horizon`** quarters before the maximum quarter.
+
+It's important to note that the success of a time series forecasting model often depends on how well you structure your training and test sets. Make sure that the temporal order of your data is maintained, with the training set covering the period before the test set.
+
+Also, ensure that the data types and formats are consistent, especially when dealing with time-related variables such as quarters. If **`Quarter`** is a date or time-related variable, consider converting it to an appropriate date format for better handling of time series data.
+
+If you have specific questions or if there's anything else you would like assistance with, feel free to ask!
+
+### Estimate the Model
+
+```{r}
+fit <- train |>
+  model(average = MEAN(Trips),
+        naive = NAIVE(Trips),
+        snaiev = SNAIVE(Trips),
+        regression = TSLM(Trips ~ trend() + season()),
+        automatic_ets = ETS(Trips),
+        automatic_arima = ARIMA(Trips)
+        )
+fit
+```
+
+### Recap: View the arima model
+
+```{r}
+fit|>
+  select(automatic_arima)|>
+  report()
+```
+
+### Create the Forecast Using the Models Above
+
+```{r}
+fcst <- fit |> 
+  forecast(h = forecast_horizon)
+fcst
+```
+
+### Estimate Models' Accuracy Metrics
+
+In this case, we use the accuracy() function to estimate the models' accuracy as shown below.
+
+```{r}
+fcst_accuracy <- fcst |>
+  accuracy(aus_tourism,
+           measures = list(point_accuracy_measures,
+                           interval_accuracy_measures,
+                           distribution_accuracy_measures))
+fcst_accuracy
+#View(fcst_accuracy)
+```
+
+The table give various accuracy metrics but we can just extract a few that we interested in, because we do not need everything here.
+
+### Extract a Few Accuracy Metrics of Interest
+
+```{r}
+acc <-fcst_accuracy |> 
+  select(.model, MAE, RMSE, MAPE, winkler, CRPS)
+acc
+#View(acc)
+
+```
+
+If we look at CRPS, the lowest value if for automatic arima. This is mostly used if you are interested in the entire distribution. However, if we are interested in the prediction interval, arima is doing good as well. For the point forecast, we have RMSE from which naive is doing better. That is, the model that has the lowest error measure is naive.
+
+## Short Notes
+
+1.  **MAE (Mean Absolute Error):**
+
+    -   **Definition:** The average absolute difference between the predicted and actual values.
+
+    -   **Interpretation:** Lower MAE indicates better model accuracy. It is easy to understand and gives equal weight to all errors.
+
+2.  **RMSE (Root Mean Squared Error):**
+
+    -   **Definition:** The square root of the average of squared differences between predicted and actual values.
+
+    -   **Interpretation:** Similar to MAE, but it penalizes larger errors more heavily. It provides a measure of the spread of errors.
+
+3.  **MAPE (Mean Absolute Percentage Error):**
+
+    -   **Definition:** The average percentage difference between predicted and actual values, expressed as a percentage of the actual values.
+
+    -   **Interpretation:** MAPE is useful when the scale of the variable being predicted varies. It represents the relative size of the errors.
+
+4.  **Winkler Score:**
+
+    -   **Definition:** A scoring metric that penalizes predictions that deviate from actual values.
+
+    -   **Interpretation:** Lower Winkler score is desirable. It is particularly used in forecasting tasks where deviations from actual values are penalized.
+
+5.  **CRPS (Continuous Ranked Probability Score):**
+
+    -   **Definition:** A probabilistic accuracy metric often used for probabilistic forecasts.
+
+    -   **Interpretation:** It measures the difference between the predicted and actual cumulative distribution functions. Lower CRPS indicates better probabilistic forecast accuracy.
+
+Now, let's apply these interpretations to your models:
+
+1.  **automatic_arima:**
+
+    -   Performs well in terms of MAE, RMSE, and MAPE.
+
+    -   Achieves a relatively low Winkler score and CRPS, indicating good performance in penalizing deviations and probabilistic forecasting.
+
+2.  **automatic_ets:**
+
+    -   Similar to automatic_arima but with higher MAE, RMSE, and MAPE.
+
+    -   Scores higher on Winkler and CRPS, indicating higher penalties for deviations and potentially less accurate probabilistic forecasting.
+
+3.  **average:**
+
+    -   Has high values across all metrics, indicating poor performance in terms of MAE, RMSE, MAPE, Winkler, and CRPS.
+
+    -   This model might be a benchmark or a simple baseline, but it is not performing well compared to the other models.
+
+4.  **naive:**
+
+    -   Performs well, especially in terms of MAE and Winkler.
+
+    -   Has a low MAPE, indicating good relative performance. The CRPS value is also relatively low.
+
+5.  **regression:**
+
+    -   Has high values for all metrics, suggesting poorer performance compared to other models.
+
+    -   It is likely not the best-performing model based on these metrics.
+
+6.  **snaiev:**
+
+    -   Performs reasonably well in terms of MAE, RMSE, and MAPE.
+
+    -   Has a lower Winkler score and CRPS compared to the average model, indicating better penalization of deviations and probabilistic forecasting.
+
+Remember that the choice of the appropriate metric depends on the specific characteristics of your forecasting problem and the importance you assign to different types of errors.
+
+### Time Series Cross Validation (Advanced Accuracy Testing)
+
+It is too risky to make the prediction and conclusion based on only one forecast horizon, that is very risky. Such a method cannot be recommended. We have to make sure that the model we recommend to people has been tested to various forecast horizon. That is the concept in time series called cross validation. We started with a simple train and test model, now we mover to a more advanced model. In this process, we start by defining the forecast horizon and the percentage_test.
+
+```{r}
+forecast_horizon <- 4
+percentage_test <- 0.3
+```
+
+```{r}
+test <- aus_tourism |> filter_index(as.character(max(aus_tourism$Quarter)))
+test
+```
+
+### Test
+
+```{r}
+test <- aus_tourism |> filter_index(as.character(max(aus_tourism$Quarter) -
+                                                   round(percentage_test*length(unique(aus_tourism$Quarter)))+1) ~ .)
+test
+```
+
+### Train
+
+```{r}
+train <- aus_tourism |> filter_index(. ~ as.character(max(aus_tourism$Quarter) -
+                                                        round(percentage_test*length(unique(aus_tourism$Quarter)))))
+train
+```
+
+### Alternatively
+
+```{r}
+# Set the proportion for the training set
+training_proportion <- 0.7
+
+# Calculate the splitting index
+split_index <- floor(nrow(aus_tourism) * training_proportion)
+
+# Split the tsibble into training and test sets
+train_data <- aus_tourism[1:split_index, ]
+test_data <- aus_tourism[(split_index + 1):nrow(aus_tourism), ]
+```
+
+### View the train data
+
+```{r}
+train_data
+```
+
+### View the test data
+
+```{r}
+View(test_data)
+```
+
+## stretch_tsibble() function
+
+### Proceed with previous method of splitting the data
+
+```{r}
+tscv_aus_tourism <- aus_tourism |>
+  filter_index(. ~ as.character(max(aus_tourism$Quarter)-forecast_horizon)) |>
+  stretch_tsibble(.init = length(unique(train$Quarter)), .step = 1)
+tscv_aus_tourism
+```
+
+### View
+
+```{r}
+View(tscv_aus_tourism)
+```
+
+From the data above, we have 21 different ids. In other words, we will evaluate the forecast in 21 different forecast horizons in 21 different four steps ahead forecast. So will have different sample with different situations.
+
+```{r}
+fit <- tscv_aus_tourism |>
+  model(average = MEAN(Trips),
+        naive = NAIVE(Trips),
+        snaiev = SNAIVE(Trips),
+        regression = TSLM(Trips ~ trend() + season()),
+        automatic_ets = ETS(Trips),
+        automatc_arima = ARIMA(Trips)
+        ) |>
+  mutate(combination = (automatc_arima+automatic_ets+snaiev)/3)
+```
+
+### View the output for ARIMA
+
+```{r}
+fit|>
+  select(automatc_arima)|>
+  report()
+```
+
+### Extract a Particular ARIMA model for a specific ID
+
+```{r}
+fit|>
+  select(automatc_arima)|>
+  filter(.id == 20)|>
+  report()
+```
+
+This model is different from what we saw before. Initially, we had only one time series, but in this case we have 21 different ids and there we have 21 different time series. In other words, each id is treated as time series. Each row is one time series and each column is one method. In this case we will therefore have 21 different models for each method.
+
+## Forecast and Plot the Forecast
+
+```{r}
+fcst <- fit |> forecast(h = forecast_horizon)
+fcst
+```
+
+### View the Forecast of Model for ID 1
+
+```{r}
+fcst|>
+  filter(.id == 1)
+```
+
+### View the aus_tourism dataset
+
+```{r}
+aus_tourism
+```
+
+```{r}
+fcst|>
+  filter(.id == 1)|>
+  autoplot()
+```
+
+### Performance Metrics and Models' Accuracy
+
+```{r}
+fcst_accuracy <- fcst |>
+  accuracy(aus_tourism,
+           measures = list(point_accuracy_measures,
+                           interval_accuracy_measures,
+                           distribution_accuracy_measures))
+```
+
+### View the Performance and Accuracy of each model
+
+```{r}
+fcst_accuracy
+##View(fcst_accuracy)
+```
+
+1.  **Automatic ARIMA:** Moderate errors across metrics. Low MAE and RMSE compared to some models, indicating relatively good performance in predicting close values. The ACF1 value suggests some autocorrelation in residuals. Moderate overall performance.
+
+2.  **Automatic ETS:** Similar performance to ARIMA but slightly higher errors. ACF1 is also slightly higher, indicating residual autocorrelation.
+
+3.  **Mean Model:** Highest errors among all models. Considerably higher MAE, RMSE, and MAPE values, indicating poor performance in capturing the pattern.
+
+4.  **Combination:** Moderate errors, lower than Mean Model. Shows better performance compared to the mean model but slightly higher errors than ARIMA and ETS.
+
+5.  **Naive:** Lower errors in MAE and RMSE compared to some models, suggesting better performance in predicting close values. However, relatively high MAPE indicates higher percentage errors.
+
+6.  **Regression:** Shows high errors across metrics, similar to the Mean Model. It seems to perform poorly compared to other models.
+
+7.  **Seasonal Naive:** Moderate errors overall, similar to ARIMA and ETS. ACF1 is relatively low, indicating less autocorrelation in residuals compared to some models.
+
+Among these models, Automatic ARIMA and Automatic ETS seem to perform relatively well overall, having moderate errors across metrics and lower autocorrelation in residuals. Naive and Combination models also exhibit moderate performance. The Mean Model, Regression, and Seasonal Naive models have higher errors and might not be suitable choices based on these metrics.
+
+## Note!!!
+
+### **Metrics Focused on the Entire Distribution:**
+
+1.  **CRPS (Continuous Ranked Probability Score):**
+
+    -   **Focus:** Measures the discrepancy between the predicted and observed cumulative distribution functions. It evaluates probabilistic forecasts by assessing the entire distribution of predicted probabilities.
+
+    -   **Application:** Ideal for assessing the accuracy of probabilistic forecasts, giving an overview of the model's performance across the entire range of predicted probabilities.
+
+2.  **RMSSE (Root Mean Squared Scaled Error):**
+
+    -   **Focus:** Measures the relative forecast performance by comparing the RMSE of the forecast to the RMSE of a naïve forecast.
+
+    -   **Application:** Evaluates the forecasting performance relative to a baseline (naïve forecast) by considering the scale of the data.
+
+### **Metrics Focused on Point Forecasts:**
+
+1.  **ME (Mean Error):**
+
+    -   **Focus:** Measures the average error, indicating the tendency of the forecasts to overestimate or underestimate the actual values.
+
+    -   **Application:** Provides information on the average bias of the forecasts. If consistently positive or negative, it indicates a systematic over- or underestimation.
+
+2.  **RMSE (Root Mean Squared Error):**
+
+    -   **Focus:** Measures the square root of the average of squared differences between predicted and actual values.
+
+    -   **Application:** It provides a measure of the overall accuracy of the model's point forecasts, penalizing larger errors more heavily.
+
+3.  **MAE (Mean Absolute Error):**
+
+    -   **Focus:** Measures the average absolute difference between predicted and actual values.
+
+    -   **Application:** Similar to RMSE but without squaring errors, offering an alternative view of the model's accuracy without magnifying larger errors.
+
+4.  **MAPE (Mean Absolute Percentage Error):**
+
+    -   **Focus:** Measures the average percentage difference between predicted and actual values.
+
+    -   **Application:** Provides insights into the relative size of errors, useful when comparing models predicting different scales.
+
+5.  **MPE (Mean Percentage Error):**
+
+    -   **Focus:** Measures the average of percentage errors.
+
+    -   **Application:** Offers information on the tendency of the model to overestimate or underestimate and the magnitude of these errors.
+
+### **Weighted or Penalizing Metrics:**
+
+1.  **Winkler Score:**
+
+    -   **Focus:** A scoring metric that penalizes predictions that deviate from actual values.
+
+    -   **Application:** Provides a weighted assessment that penalizes significant deviations, particularly useful when specific focus on larger deviations is needed.
+
+Each metric contributes a different perspective on the model's performance, focusing either on overall distribution assessment or pinpointing accuracy at specific points. The choice of which metric to prioritize depends on the specific forecasting goals and the critical aspects of model performance you wish to emphasize.
+
+### Extract Specific Accuracy Metrics
+
+```{r}
+fcst_accuracy |> 
+  select(.model, MAE, RMSE, winkler, CRPS)
+```
+
+### Winkler score alone
+
+```{r}
+fcst |>
+  accuracy(aus_tourism, list(qs = winkler_score), level = .9)
+```
+
+### Quantile Score alone
+
+```{r}
+fcst |>
+  accuracy(aus_tourism, list(qs = quantile_score), probs = .9)
+```
+
+### Accuracy by model and .id
+
+```{r}
+fcst_accuracy <- fcst |>
+  accuracy(aus_tourism, by = c(".model", ".id"))
+fcst_accuracy
+
+```
+
+### Boxplot based on RMSE
+
+```{r}
+fcst_accuracy |> ggplot(aes( x = RMSE, y = fct_reorder(.model, RMSE), fill = .model))+
+  geom_boxplot()+
+  labs(title = "Boxplot Showing Models' Accuracy and Performance")
+```
+
+### Boxplot based on MAE
+
+```{r}
+fcst_accuracy |> ggplot(aes( x = MAE, y = fct_reorder(.model, MAE), fill = .model))+
+  geom_boxplot()+
+  labs(title = "Boxplot Showing Models' Accuracy and Performance")
+```
+
+### Boxplot based on RMSSE
+
+```{r}
+fcst_accuracy |> ggplot(aes( x = RMSSE, y = fct_reorder(.model, RMSSE), fill = .model))+
+  geom_boxplot()+
+  labs(title = "Boxplot Showing Models' Accuracy and Performance")
+```
+
+### Boxplot based on ME
+
+```{r}
+fcst_accuracy |> ggplot(aes( x = ME, y = fct_reorder(.model, ME), fill = .model))+
+  geom_boxplot()+
+  labs(title = "Boxplot Showing Models' Accuracy and Performance")
+```
+
+### Boxplot based on MASE
+
+```{r}
+fcst_accuracy |> ggplot(aes( x = MASE, y = fct_reorder(.model, MASE), fill = .model))+
+  geom_boxplot()+
+  labs(title = "Boxplot Showing Models' Accuracy and Performance")
+```
+
+In the realm of forecasting models, the evaluation of performance metrics often serves as a guiding light to discern the efficacy of various methodologies. In this scenario, the Automatic ARIMA model emerges as the forerunner, showcasing a superior predictive prowess among its peers. Its adeptness in minimizing errors across key metrics, such as Mean Absolute Error (MAE), Root Mean Squared Error (RMSE), and Mean Absolute Percentage Error (MAPE), positions it as a reliable choice for accurate point forecasts. The model's demonstrated ability to capture patterns within the dataset without succumbing to significant biases underscores its robustness.
+
+Following closely in the wake of Automatic ARIMA, the Automatic ETS model and the combined model exhibit commendable performance. While both models present slightly higher errors compared to the ARIMA, their overall accuracy and nuanced forecasting capabilities place them in the upper echelon of the lineup.
+
+The Seasonal NAIVE and the NAIVE models secure their positions with respectable performances, albeit with slightly elevated errors when predicting values. Their simplicity and baseline-level performance make them suitable options for initial benchmarks but may fall short when aiming for finer predictive precision.
+
+Contrarily, the Mean Model and Regression model display considerable shortcomings in forecasting accuracy, marked by notably higher errors across metrics. These models, albeit functional, lag behind in capturing the nuances of the dataset, signaling their limitations in providing accurate predictions.
+
+In summary, the hierarchy of model performance, led by the Automatic ARIMA, suggests a tiered evaluation where models with more sophisticated methodologies and superior adaptability in capturing underlying patterns shine brighter, whereas simpler or less adaptive models lag behind in predictive accuracy.
